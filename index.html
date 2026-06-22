@@ -244,7 +244,7 @@ body.authed .loggedInOnly{display:inline-flex;}
     <button id="helpBtn" type="button" title="도움말">?</button>
     <div id="nsel"><div class="ni">+</div><span>요소를 선택하면 속성을 편집할 수 있어요</span></div>
     <div id="msel" style="display:none">
-      <div id="nsel"><div class="ni">+</div><span id="mselText">여러 요소가 선택됐어요</span></div>
+      <div style="padding:30px 20px;display:flex;flex-direction:column;align-items:center;gap:7px;color:var(--fg2);font-size:12px;text-align:center;"><div class="ni" style="font-size:28px;opacity:.4;">+</div><span id="mselText">여러 요소가 선택됐어요</span></div>
       <div class="ps"><button class="pi" id="btnGroupSelected" type="button">그룹으로 묶기</button><button class="pi" id="btnUngroupSelected" type="button">그룹 풀기</button></div>
       <div class="ps"><button class="pi dangerBtn" id="btnDelSelected" type="button">선택 요소 삭제</button></div>
     </div>
@@ -1013,7 +1013,10 @@ body.authed .loggedInOnly{display:inline-flex;}
 
   function applySnapshot(data) {
     if (!data) return;
-    els = JSON.parse(JSON.stringify(data.els || []));
+    var rawEls = Array.isArray(data.els) ? data.els : [];
+    els = JSON.parse(JSON.stringify(rawEls)).filter(function(e, idx) {
+      return !!normalizeElement(e, idx);
+    });
     idc = data.idc || els.reduce(function(max, e) { return Math.max(max, e.id || 0); }, 0);
     activePage = data.activePage || 1;
     groupIdc = data.groupIdc || els.reduce(function(max, e) { return Math.max(max, e.groupId || 0); }, 0);
@@ -1232,6 +1235,31 @@ body.authed .loggedInOnly{display:inline-flex;}
   }
 
   function normalizeElement(e, idx) {
+    if (!e || typeof e !== 'object') return null;
+    e.id = Math.max(1, Math.floor(+e.id || 0));
+    if (!e.id) e.id = ++idc;
+    e.type = String(e.type || 'text');
+    if (!DEF_FALLBACK[e.type]) e.type = 'text';
+    var d = DEF_FALLBACK[e.type];
+    e.x = saneNumber(e.x, 20, 0, 5000);
+    e.y = saneNumber(e.y, 20, 0, 8000);
+    e.w = saneNumber(e.w, d.w, e.type === 'divider' ? 1 : 30, 5000);
+    e.h = saneNumber(e.h, d.h, e.type === 'divider' ? 1 : 16, 8000);
+    e.text = e.text == null ? d.text : String(e.text);
+    e.fs = saneNumber(e.fs, d.fs, 1, 300);
+    e.col = normalizeColorLike(e.col, d.col);
+    e.bg = normalizeColorLike(e.bg, d.bg);
+    e.url = e.url == null ? '' : String(e.url);
+    e.ph = e.ph == null ? d.ph : String(e.ph);
+    e.action = e.action || 'none';
+    e.msg = e.msg == null ? '' : String(e.msg);
+    e.link = e.link == null ? '' : String(e.link);
+    e.actBg = normalizeColorLike(e.actBg, '#ffffff');
+    e.actBgMode = e.actBgMode === 'toggle' ? 'toggle' : 'set';
+    e.targetColor = normalizeColorLike(e.targetColor, '#E05454');
+    e.targetId = e.targetId == null ? '' : String(e.targetId);
+    e.sourceId = e.sourceId == null ? '' : String(e.sourceId);
+    e.actionValue = e.actionValue == null ? '' : String(e.actionValue);
     e.page = Math.max(1, Math.min(9, +e.page || 1));
     e.z = isFinite(+e.z) ? +e.z : idx;
     e.groupId = +e.groupId || 0;
@@ -1242,12 +1270,49 @@ body.authed .loggedInOnly{display:inline-flex;}
     e.condSourceId = e.condSourceId || '';
     e.condValue = e.condValue || '';
     e.options = e.options || e.text || '';
+    e.icon = e.icon == null ? '' : String(e.icon);
+    e.iconCustom = e.iconCustom == null ? '' : String(e.iconCustom);
+    e.listStyle = e.listStyle || 'disc';
+    e.radius = saneNumber(e.radius, 0, 0, 500);
+    e.shape = e.shape || 'rect';
     return e;
+  }
+
+  var DEF_FALLBACK = {
+    text:{ w:200, h:36, text:'텍스트', fs:14, col:'#1a1a1a', bg:'transparent', ph:'' },
+    heading:{ w:300, h:48, text:'제목', fs:28, col:'#1a1a1a', bg:'transparent', ph:'' },
+    button:{ w:130, h:40, text:'버튼', fs:14, col:'#ffffff', bg:'#E05454', ph:'' },
+    image:{ w:220, h:150, text:'이미지', fs:14, col:'#aaaaaa', bg:'#f0f0f0', ph:'' },
+    input:{ w:200, h:38, text:'', fs:14, col:'#1a1a1a', bg:'#ffffff', ph:'입력해주세요' },
+    select:{ w:200, h:38, text:'옵션 1,옵션 2,옵션 3', fs:14, col:'#1a1a1a', bg:'#ffffff', ph:'' },
+    checkbox:{ w:180, h:34, text:'동의합니다', fs:14, col:'#1a1a1a', bg:'transparent', ph:'' },
+    radio:{ w:180, h:34, text:'선택 항목', fs:14, col:'#1a1a1a', bg:'transparent', ph:'' },
+    icon:{ w:56, h:56, text:'', fs:36, col:'#E05454', bg:'transparent', ph:'' },
+    link:{ w:160, h:32, text:'링크 텍스트', fs:15, col:'#E05454', bg:'transparent', ph:'' },
+    list:{ w:240, h:110, text:'첫 번째,두 번째,세 번째', fs:15, col:'#1a1a1a', bg:'transparent', ph:'' },
+    nav:{ w:520, h:56, text:'WebCraft,소개,서비스,문의', fs:14, col:'#1a1a1a', bg:'#ffffff', ph:'' },
+    card:{ w:220, h:150, text:'카드 내용', fs:14, col:'#1a1a1a', bg:'#ffffff', ph:'' },
+    divider:{ w:380, h:4, text:'', fs:14, col:'#e0e0e0', bg:'#e0e0e0', ph:'' }
+  };
+
+  function saneNumber(value, fallback, min, max) {
+    var n = Number(value);
+    if (!isFinite(n)) n = fallback;
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function normalizeColorLike(value, fallback) {
+    var color = value == null ? '' : String(value).trim();
+    if (!color) return fallback;
+    if (color === 'transparent') return color;
+    if (/^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(color)) return color;
+    if (/^(rgb|rgba|hsl|hsla)\(/i.test(color)) return color;
+    return fallback;
   }
 
   function refreshCanvasVisibility() {
     els.forEach(function(e, idx) {
-      normalizeElement(e, idx);
+      if (!normalizeElement(e, idx)) return;
       var dom = gdom(e.id);
       if (!dom) return;
       dom.style.display = e.page === activePage ? '' : 'none';
@@ -1719,7 +1784,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   }
 
   function mountEl(e, existing) {
-    normalizeElement(e, els.indexOf(e));
+    if (!normalizeElement(e, els.indexOf(e))) return null;
     var dom = existing || document.createElement('div');
     dom.className = 'el';
     dom.dataset.id = e.id;
@@ -2659,4 +2724,3 @@ body.authed .loggedInOnly{display:inline-flex;}
 </script>
 </body>
 </html>
-
