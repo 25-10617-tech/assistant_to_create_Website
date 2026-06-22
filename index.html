@@ -62,7 +62,7 @@ body.authed .loggedInOnly{display:inline-flex;}
 .sep{height:1px;background:var(--bd);margin:4px 0;}
 
 /* 캔버스 영역 */
-#cw{flex:1;background:#c8c8c8;overflow:auto;position:relative;display:flex;align-items:flex-start;justify-content:center;padding:30px;}
+#cw{flex:1;background:#c8c8c8;overflow:auto;position:relative;display:flex;align-items:flex-start;justify-content:center;padding:42px 30px 42vh;}
 #cv{
   position:relative;
   flex:0 0 auto;
@@ -710,16 +710,23 @@ body.authed .loggedInOnly{display:inline-flex;}
     if (authSession && authSession.token) {
       options.headers.Authorization = 'Bearer ' + authSession.token;
     }
-    var res = await fetch(url, options);
+    var res;
+    try {
+      res = await fetch(url, options);
+    } catch (err) {
+      throw new Error('서버에 연결할 수 없습니다. 공개 서버에서는 같은 주소의 서버 API만 사용할 수 있습니다.');
+    }
     var raw = await res.text().catch(function() { return ''; });
     var data = {};
     if (raw) {
       try {
         data = JSON.parse(raw);
       } catch (err) {
-        data = { error: raw };
+        var looksHtml = /^\s*</.test(raw) || /<html|<\/body>|<\/h1>/i.test(raw);
+        data = looksHtml ? { error: '서버에서 올바르지 않은 응답을 보냈습니다.' } : { error: raw };
       }
     }
+
     if (!res.ok) {
       throw new Error(data.error || res.statusText || '요청에 실패했습니다.');
     }
