@@ -161,6 +161,14 @@ body.authed .loggedInOnly{display:inline-flex;}
 #prev{display:none;flex:1;}
 #prev.on{display:flex;}
 #prev iframe{flex:1;border:none;background:#fff;}
+.bottomNav{height:42px;background:var(--pn);border-top:1px solid var(--bd);display:flex;align-items:center;justify-content:center;gap:22px;flex-shrink:0;color:var(--fg2);font-size:12px;}
+.bottomNav button,.bottomNav a{background:transparent;border:0;color:var(--fg2);font-size:12px;cursor:pointer;text-decoration:none;}
+.bottomNav button:hover,.bottomNav a:hover{color:var(--fg);}
+.contactField{display:block;margin-top:10px;}
+.contactField span{display:block;font-size:11px;color:var(--fg2);font-weight:600;margin-bottom:5px;}
+#contactEmail,#contactSubject,#contactBody{width:100%;background:var(--p2);border:1px solid var(--bd);color:var(--fg);padding:9px;border-radius:6px;font-size:13px;outline:none;}
+#contactBody{min-height:110px;resize:vertical;line-height:1.45;}
+#contactEmail:focus,#contactSubject:focus,#contactBody:focus{border-color:var(--ac);}
 
 ::-webkit-scrollbar{width:6px;height:6px;}
 ::-webkit-scrollbar-thumb{background:#444;border-radius:3px;}
@@ -384,6 +392,11 @@ body.authed .loggedInOnly{display:inline-flex;}
     </div>
   </div>
 </div>
+<nav class="bottomNav" aria-label="하단 메뉴">
+  <button id="bottomHome" type="button">홈</button>
+  <button id="bottomProjects" type="button">작품</button>
+  <button id="bottomContact" type="button">문의하기</button>
+</nav>
 <div id="helpPop" role="dialog" aria-modal="false" aria-labelledby="helpTitle">
   <button id="helpClose" type="button" title="닫기">x</button>
   <h2 id="helpTitle">사용 도움말</h2>
@@ -414,6 +427,20 @@ body.authed .loggedInOnly{display:inline-flex;}
     <div id="messageActions">
       <button class="hb" id="messageCancel" type="button">취소</button>
       <button class="hb pr" id="messageOk" type="button">확인</button>
+    </div>
+  </div>
+</div>
+<div id="contactModal" role="dialog" aria-modal="true" aria-labelledby="contactTitle" style="display:none;position:fixed;inset:0;z-index:95;background:rgba(0,0,0,.48);align-items:center;justify-content:center;padding:20px;">
+  <div id="contactDialog" style="width:min(420px,100%);background:#242424;color:var(--fg);border:1px solid var(--bd);border-radius:8px;box-shadow:0 22px 64px rgba(0,0,0,.44);padding:18px;position:relative;">
+    <button id="contactClose" type="button" title="닫기" style="position:absolute;top:8px;right:8px;width:26px;height:26px;border:0;background:transparent;color:var(--fg);font-size:18px;cursor:pointer;">x</button>
+    <h2 id="contactTitle" style="font-size:15px;margin-bottom:8px;">문의하기</h2>
+    <p style="font-size:12px;line-height:1.45;color:#aaa;">아래 내용으로 25-10617@kijun.hs.kr에 메일을 보낼 수 있습니다.</p>
+    <label class="contactField"><span>받는 사람</span><input id="contactEmail" type="email" value="25-10617@kijun.hs.kr" readonly></label>
+    <label class="contactField"><span>제목</span><input id="contactSubject" type="text" value="WebCraft 문의"></label>
+    <label class="contactField"><span>내용</span><textarea id="contactBody" placeholder="문의 내용을 입력하세요."></textarea></label>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">
+      <button class="hb" id="contactCancel" type="button">취소</button>
+      <button class="hb pr" id="contactSend" type="button">메일 보내기</button>
     </div>
   </div>
 </div>
@@ -457,7 +484,6 @@ body.authed .loggedInOnly{display:inline-flex;}
   var history = [];
   var historyIndex = -1;
   var restoringHistory = false;
-  var AUTH_KEY = 'webcraft-studio-auth-v1';
   var authSession = null;
   var activeProjectId = '';
   var activeProjectTitle = '';
@@ -689,10 +715,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   function saveAuthSession(session) {
     closeProjectMenu();
     authSession = session;
-    if (session) {
-      localStorage.setItem(AUTH_KEY, JSON.stringify(session));
-    } else {
-      localStorage.removeItem(AUTH_KEY);
+    if (!session) {
       activeProjectId = '';
       activeProjectTitle = '';
       var list = document.getElementById('projectList');
@@ -707,9 +730,7 @@ body.authed .loggedInOnly{display:inline-flex;}
     options.headers = Object.assign({
       'Content-Type': 'application/json'
     }, options.headers || {});
-    if (authSession && authSession.token) {
-      options.headers.Authorization = 'Bearer ' + authSession.token;
-    }
+    options.credentials = 'same-origin';
     var res;
     try {
       res = await fetch(url, options);
@@ -797,7 +818,7 @@ body.authed .loggedInOnly{display:inline-flex;}
         method: 'POST',
         body: JSON.stringify({ username: username, email: email, password: password, passwordConfirm: passwordConfirm, action: action })
       });
-      saveAuthSession({ username: data.username, token: data.token });
+      saveAuthSession({ username: data.username });
       document.getElementById('authEmail').value = '';
       document.getElementById('authPass').value = '';
       document.getElementById('authPassConfirm').value = '';
@@ -849,6 +870,30 @@ body.authed .loggedInOnly{display:inline-flex;}
     return title;
   }
 
+  async function promptCanvasSizeForNewProject() {
+    var message = '캔버스 크기를 입력하세요. auto, desktop, laptop, tablet, mobile, landing, long 또는 1440x1800 형식으로 입력할 수 있습니다.';
+    var value = await askPrompt('새 작품 캔버스', message, canvasPreset === 'auto' ? 'landing' : canvasPreset);
+    if (value === null) return null;
+    value = value.trim().toLowerCase();
+    if (!value) value = 'auto';
+    if (value === '현재 화면에 맞춤') value = 'auto';
+    if (CANVAS_PRESETS[value] || value === 'auto') {
+      return { preset:value };
+    }
+    var match = value.match(/^(\d{3,5})\s*[x*×]\s*(\d{3,5})$/);
+    if (match) {
+      return {
+        preset:'custom',
+        size:{
+          w: clamp(+match[1], 240, 5000),
+          h: clamp(+match[2], 240, 8000)
+        }
+      };
+    }
+    setAuthStatus('캔버스 크기는 auto, desktop, laptop, tablet, mobile, landing, long 또는 1440x1800 형식으로 입력하세요.', true);
+    return null;
+  }
+
   function selectedProjectTitle() {
     var list = document.getElementById('projectList');
     if (!list || !list.value || list.selectedIndex < 0) return '';
@@ -874,7 +919,12 @@ body.authed .loggedInOnly{display:inline-flex;}
       var confirmed = await askConfirm('새 작품 만들기', '현재 작업을 닫고 새 작품을 만들까요? 저장하지 않은 내용은 사라집니다.');
       if (!confirmed) return;
     }
+    var canvasChoice = await promptCanvasSizeForNewProject();
+    if (!canvasChoice) return;
     clearCurrentProject();
+    canvasPreset = canvasChoice.preset;
+    if (canvasChoice.size) customCanvasSize = canvasChoice.size;
+    applyCanvasPreset(false);
     setAuthStatus('새 작품을 만들었습니다.', false);
   }
 
@@ -952,13 +1002,10 @@ body.authed .loggedInOnly{display:inline-flex;}
     }
   }
 
-  function restoreAuthSession() {
+  async function restoreAuthSession() {
     try {
-      var raw = localStorage.getItem(AUTH_KEY);
-      if (!raw) return;
-      var parsed = JSON.parse(raw);
-      if (!parsed || !parsed.token || !parsed.username) return;
-      authSession = parsed;
+      var data = await apiFetch('/api/session', { method: 'GET' });
+      authSession = { username: data.username };
       updateAuthUi();
       refreshProjects();
     } catch (err) {}
@@ -1357,6 +1404,32 @@ body.authed .loggedInOnly{display:inline-flex;}
   document.getElementById('messageModal').addEventListener('mousedown', function(ev) {
     if (ev.target === this) closeMessage();
   });
+  document.getElementById('bottomHome').addEventListener('click', function() {
+    setView('design');
+  });
+  document.getElementById('bottomProjects').addEventListener('click', function(ev) {
+    if (!authSession) {
+      openAuthModal();
+      return;
+    }
+    var rect = ev.currentTarget.getBoundingClientRect();
+    openProjectMenu(rect.left, rect.top);
+  });
+  document.getElementById('bottomContact').addEventListener('click', function() {
+    document.getElementById('contactModal').style.display = 'flex';
+    setTimeout(function() { document.getElementById('contactSubject').focus(); }, 0);
+  });
+  document.getElementById('contactClose').addEventListener('click', closeContactModal);
+  document.getElementById('contactCancel').addEventListener('click', closeContactModal);
+  document.getElementById('contactModal').addEventListener('mousedown', function(ev) {
+    if (ev.target === this) closeContactModal();
+  });
+  document.getElementById('contactSend').addEventListener('click', function() {
+    var to = document.getElementById('contactEmail').value;
+    var subject = document.getElementById('contactSubject').value || 'WebCraft 문의';
+    var body = document.getElementById('contactBody').value || '';
+    window.location.href = 'mailto:' + encodeURIComponent(to) + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+  });
   document.getElementById('messageInput').addEventListener('keydown', function(ev) {
     if (ev.key === 'Enter') resolveMessage(this.value);
   });
@@ -1377,8 +1450,11 @@ body.authed .loggedInOnly{display:inline-flex;}
       clearAuthFieldError(id);
     });
   });
-  document.getElementById('btnLogout').addEventListener('click', function() {
+  document.getElementById('btnLogout').addEventListener('click', async function() {
     closeProjectMenu();
+    try {
+      await apiFetch('/api/logout', { method: 'POST' });
+    } catch (err) {}
     saveAuthSession(null);
     setAuthStatus('로그아웃됨', false);
   });
@@ -1488,6 +1564,7 @@ body.authed .loggedInOnly{display:inline-flex;}
     if (ev.key === 'Escape') {
       document.getElementById('helpPop').classList.remove('on');
       closeMessage();
+      closeContactModal();
       closeProjectMenu();
       closeAuthModal();
     }
@@ -1533,6 +1610,10 @@ body.authed .loggedInOnly{display:inline-flex;}
     });
   }
   setupNumberSteppers();
+
+  function closeContactModal() {
+    document.getElementById('contactModal').style.display = 'none';
+  }
 
   // ── 속성 패널 입력 ──
   document.getElementById('picon').addEventListener('change', function() { applyProp('icon'); });

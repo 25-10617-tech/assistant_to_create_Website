@@ -240,6 +240,22 @@
       "iterations": 120000,
       "projects": {},
       "createdAt": "2026-06-22T08:33:59.519Z"
+    },
+    "securetest": {
+      "email": "securetest@example.com",
+      "salt": "d62f0f9d3513f9f7d1d08184b82c648d",
+      "hash": "a9fd9fb482d8046d049053e91133363e3a31903673554ee87f0518399cca26bf",
+      "iterations": 120000,
+      "projects": {},
+      "createdAt": "2026-06-22T08:39:22.226Z"
+    },
+    "cookietest": {
+      "email": "cookietest@example.com",
+      "salt": "c834be12e52634f9fdd745861bca7442",
+      "hash": "ccd609463995fef768200a6feb2f741bfeb05932f86516a5e475ef6046227322",
+      "iterations": 120000,
+      "projects": {},
+      "createdAt": "2026-06-22T08:43:45.967Z"
     }
   }
 }
