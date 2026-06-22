@@ -101,12 +101,13 @@ function validateEmail(email) {
 }
 
 function validatePasswordPolicy(password) {
-  return (
-    password.length >= PASSWORD_MIN_LENGTH &&
-    /[A-Za-z]/.test(password) &&
-    /\d/.test(password) &&
-    /[!@#$%^&*()_\+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password)
-  );
+  if (password.length < PASSWORD_MIN_LENGTH) return false;
+  let score = 0;
+  if (/[a-z]/.test(password)) score += 1;
+  if (/[A-Z]/.test(password)) score += 1;
+  if (/\d/.test(password)) score += 1;
+  if (/[!@#$%^&*()_\+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password)) score += 1;
+  return score >= 3;
 }
 
 function hashPassword(password, salt = crypto.randomBytes(16).toString('hex'), iterations = 120000) {
@@ -157,10 +158,14 @@ async function handleLogin(req, res) {
   const username = normalizeUsername(body.username);
   const email = normalizeEmail(body.email);
   const password = String(body.password || '');
+  const passwordConfirm = String(body.passwordConfirm || '');
   const action = body.action === 'signup' ? 'signup' : 'login';
 
   if (action === 'signup' && !validatePasswordPolicy(password)) {
-    return send(res, 400, { error: '\ube44\ubc00\ubc88\ud638\ub294 8\uc790 \uc774\uc0c1, \uc54c\ud30c\ubcb3, \uc22b\uc790, \ud2b9\uc218\ubb38\uc790\ub97c \uac01\uac01 1\uac1c \uc774\uc0c1 \ud3ec\ud568\ud574\uc57c \ud569\ub2c8\ub2e4.' });
+    return send(res, 400, { error: '비밀번호는 8자 이상이며 소문자 영문, 대문자 영문, 숫자, 특수문자 중 3가지를 만족해야 합니다.' });
+  }
+  if (action === 'signup' && password !== passwordConfirm) {
+    return send(res, 400, { error: '비밀번호가 서로 일치하지 않습니다.' });
   }
 
   if (!validateUsername(username)) {
