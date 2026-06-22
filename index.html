@@ -283,7 +283,24 @@ body.authed .loggedInOnly{display:inline-flex;}
           <option value="targetToggle">대상 요소 보이기/숨기기</option>
           <option value="targetText">대상 텍스트 바꾸기</option>
           <option value="targetImage">대상 이미지 바꾸기</option>
+          <option value="targetBg">대상 배경색 바꾸기</option>
+          <option value="targetColor">대상 글자색 바꾸기</option>
+          <option value="targetBorder">대상 테두리 강조</option>
+          <option value="targetMove">대상 위치 이동</option>
+          <option value="targetResize">대상 크기 바꾸기</option>
+          <option value="targetRotate">대상 회전</option>
+          <option value="targetPulse">대상 커졌다 돌아오기</option>
+          <option value="targetShake">대상 흔들기</option>
+          <option value="targetFade">대상 깜빡이기</option>
+          <option value="copyText">다른 요소 텍스트 복사</option>
+          <option value="swapText">두 요소 텍스트 맞바꾸기</option>
+          <option value="appendInput">입력값을 대상 뒤에 추가</option>
           <option value="inputToTarget">입력값을 대상에 반영</option>
+          <option value="clearInput">입력창 비우기</option>
+          <option value="focusInput">입력창에 커서 놓기</option>
+          <option value="disableTarget">대상 비활성화</option>
+          <option value="enableTarget">대상 활성화</option>
+          <option value="toggleDisabled">대상 활성/비활성 전환</option>
           <option value="count">클릭 횟수 세기</option>
           <option value="hide">버튼 숨기기</option>
           <option value="dark">다크 모드 전환</option>
@@ -303,6 +320,7 @@ body.authed .loggedInOnly{display:inline-flex;}
             <option value="toggle">토글하기</option>
           </select>
         </div>
+        <div id="action-color" style="display:none"><div class="pl" id="action-color-label">바꿀 색상</div><input class="pi" id="ptargetcolor" type="color"></div>
       </div>
       <div class="ps"><button class="pi dangerBtn" id="btnDelOne" type="button">요소 삭제</button></div>
     </div>
@@ -958,15 +976,26 @@ body.authed .loggedInOnly{display:inline-flex;}
   }
 
   function updateActionFields(action) {
-    var needsTarget = /^target/.test(action) || action === 'inputToTarget';
+    var needsTarget = /^target/.test(action) ||
+      ['inputToTarget', 'copyText', 'swapText', 'appendInput', 'clearInput', 'focusInput', 'disableTarget', 'enableTarget', 'toggleDisabled'].indexOf(action) >= 0;
+    var needsSource = ['inputToTarget', 'copyText', 'swapText', 'appendInput'].indexOf(action) >= 0;
+    var needsValue = ['targetText', 'targetImage', 'targetMove', 'targetResize', 'targetRotate'].indexOf(action) >= 0;
+    var valueLabels = {
+      targetImage: '새 이미지 URL',
+      targetMove: '이동 값: x,y',
+      targetResize: '크기 값: 너비,높이',
+      targetRotate: '회전 각도(deg)'
+    };
     document.getElementById('action-msg').style.display = (action === 'alert' || action === 'text') ? '' : 'none';
     document.getElementById('action-msg-label').textContent = action === 'text' ? '바꿀 문구' : '메시지';
     document.getElementById('action-url').style.display = action === 'link' ? '' : 'none';
     document.getElementById('action-target').style.display = needsTarget ? '' : 'none';
-    document.getElementById('action-source').style.display = action === 'inputToTarget' ? '' : 'none';
-    document.getElementById('action-value').style.display = (action === 'targetText' || action === 'targetImage') ? '' : 'none';
-    document.getElementById('action-value-label').textContent = action === 'targetImage' ? '새 이미지 URL' : '바꿀 텍스트';
+    document.getElementById('action-source').style.display = needsSource ? '' : 'none';
+    document.getElementById('action-value').style.display = needsValue ? '' : 'none';
+    document.getElementById('action-value-label').textContent = valueLabels[action] || '바꿀 텍스트';
     document.getElementById('action-bg').style.display = action === 'bg' ? '' : 'none';
+    document.getElementById('action-color').style.display = (action === 'targetBg' || action === 'targetColor' || action === 'targetBorder') ? '' : 'none';
+    document.getElementById('action-color-label').textContent = action === 'targetColor' ? '바꿀 글자색' : (action === 'targetBorder' ? '테두리 색상' : '바꿀 배경색');
   }
 
   function elementLabel(e) {
@@ -1000,21 +1029,21 @@ body.authed .loggedInOnly{display:inline-flex;}
 
   function refreshActionSelects(e) {
     fillElementSelect('ptarget', function(x) { return x.id !== e.id && x.type !== 'divider'; }, e.targetId || '', '대상 요소 선택');
-    fillElementSelect('psource', function(x) { return x.type === 'input'; }, e.sourceId || '', '입력창 선택');
+    fillElementSelect('psource', function(x) { return x.id !== e.id && x.type !== 'divider'; }, e.sourceId || '', '값을 가져올 요소 선택');
   }
 
   var DEF = {
-    text:    { w:200, h:36,  text:'텍스트',    fs:14, col:'#1a1a1a', bg:'transparent', url:'', ph:'', action:'none', msg:'', link:'', actBg:'#ffffff', actBgMode:'set', radius:0, shape:'rect' },
-    heading: { w:300, h:48,  text:'제목',      fs:28, col:'#1a1a1a', bg:'transparent', url:'', ph:'', action:'none', msg:'', link:'', actBg:'#ffffff', actBgMode:'set', radius:0, shape:'rect' },
-    button:  { w:130, h:40,  text:'버튼',      fs:14, col:'#ffffff', bg:'#E05454',     url:'', ph:'', action:'alert', msg:'버튼 클릭!', link:'', actBg:'#ffffff', actBgMode:'set', radius:6, shape:'rounded' },
-    image:   { w:220, h:150, text:'이미지',    fs:14, col:'#aaaaaa', bg:'#f0f0f0',     url:'', ph:'', action:'none', msg:'', link:'', actBg:'#ffffff', actBgMode:'set', radius:0, shape:'rect' },
-    input:   { w:200, h:38,  text:'',          fs:14, col:'#1a1a1a', bg:'#ffffff',     url:'', ph:'입력해주세요', action:'none', msg:'', link:'', actBg:'#ffffff', actBgMode:'set', radius:4, shape:'rounded' },
-    icon:    { w:56,  h:56,  text:'',          fs:36, col:'#E05454', bg:'transparent', url:'', ph:'', action:'none', msg:'', link:'', actBg:'#ffffff', actBgMode:'set', icon:'basket', iconCustom:'✦', radius:0, shape:'rect' },
-    link:    { w:160, h:32,  text:'링크 텍스트', fs:15, col:'#E05454', bg:'transparent', url:'https://example.com', ph:'', action:'none', msg:'', link:'', actBg:'#ffffff', actBgMode:'set', radius:0, shape:'rect' },
-    list:    { w:240, h:110, text:'첫 번째,두 번째,세 번째', fs:15, col:'#1a1a1a', bg:'transparent', url:'', ph:'', action:'none', msg:'', link:'', actBg:'#ffffff', actBgMode:'set', listStyle:'disc', radius:0, shape:'rect' },
-    nav:     { w:520, h:56,  text:'WebCraft,소개,서비스,문의', fs:14, col:'#1a1a1a', bg:'#ffffff', url:'', ph:'', action:'none', msg:'', link:'', actBg:'#ffffff', actBgMode:'set', radius:6, shape:'rounded' },
-    card:    { w:220, h:150, text:'카드 내용', fs:14, col:'#1a1a1a', bg:'#ffffff',     url:'', ph:'', action:'none', msg:'', link:'', actBg:'#ffffff', actBgMode:'set', radius:8, shape:'rounded' },
-    divider: { w:380, h:4,   text:'',          fs:14, col:'#e0e0e0', bg:'#e0e0e0',     url:'', ph:'', action:'none', msg:'', link:'', actBg:'#ffffff', actBgMode:'set', radius:0, shape:'rect' }
+    text:    { w:200, h:36,  text:'텍스트',    fs:14, col:'#1a1a1a', bg:'transparent', url:'', ph:'', action:'none', msg:'', link:'', actBg:'#ffffff', actBgMode:'set', targetColor:'#E05454', radius:0, shape:'rect' },
+    heading: { w:300, h:48,  text:'제목',      fs:28, col:'#1a1a1a', bg:'transparent', url:'', ph:'', action:'none', msg:'', link:'', actBg:'#ffffff', actBgMode:'set', targetColor:'#E05454', radius:0, shape:'rect' },
+    button:  { w:130, h:40,  text:'버튼',      fs:14, col:'#ffffff', bg:'#E05454',     url:'', ph:'', action:'alert', msg:'버튼 클릭!', link:'', actBg:'#ffffff', actBgMode:'set', targetColor:'#E05454', radius:6, shape:'rounded' },
+    image:   { w:220, h:150, text:'이미지',    fs:14, col:'#aaaaaa', bg:'#f0f0f0',     url:'', ph:'', action:'none', msg:'', link:'', actBg:'#ffffff', actBgMode:'set', targetColor:'#E05454', radius:0, shape:'rect' },
+    input:   { w:200, h:38,  text:'',          fs:14, col:'#1a1a1a', bg:'#ffffff',     url:'', ph:'입력해주세요', action:'none', msg:'', link:'', actBg:'#ffffff', actBgMode:'set', targetColor:'#E05454', radius:4, shape:'rounded' },
+    icon:    { w:56,  h:56,  text:'',          fs:36, col:'#E05454', bg:'transparent', url:'', ph:'', action:'none', msg:'', link:'', actBg:'#ffffff', actBgMode:'set', targetColor:'#E05454', icon:'basket', iconCustom:'✦', radius:0, shape:'rect' },
+    link:    { w:160, h:32,  text:'링크 텍스트', fs:15, col:'#E05454', bg:'transparent', url:'https://example.com', ph:'', action:'none', msg:'', link:'', actBg:'#ffffff', actBgMode:'set', targetColor:'#E05454', radius:0, shape:'rect' },
+    list:    { w:240, h:110, text:'첫 번째,두 번째,세 번째', fs:15, col:'#1a1a1a', bg:'transparent', url:'', ph:'', action:'none', msg:'', link:'', actBg:'#ffffff', actBgMode:'set', targetColor:'#E05454', listStyle:'disc', radius:0, shape:'rect' },
+    nav:     { w:520, h:56,  text:'WebCraft,소개,서비스,문의', fs:14, col:'#1a1a1a', bg:'#ffffff', url:'', ph:'', action:'none', msg:'', link:'', actBg:'#ffffff', actBgMode:'set', targetColor:'#E05454', radius:6, shape:'rounded' },
+    card:    { w:220, h:150, text:'카드 내용', fs:14, col:'#1a1a1a', bg:'#ffffff',     url:'', ph:'', action:'none', msg:'', link:'', actBg:'#ffffff', actBgMode:'set', targetColor:'#E05454', radius:8, shape:'rounded' },
+    divider: { w:380, h:4,   text:'',          fs:14, col:'#e0e0e0', bg:'#e0e0e0',     url:'', ph:'', action:'none', msg:'', link:'', actBg:'#ffffff', actBgMode:'set', targetColor:'#E05454', radius:0, shape:'rect' }
   };
 
   // ── 요소 추가 버튼 ──
@@ -1205,6 +1234,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   document.getElementById('plink').addEventListener('input', function() { applyProp('link'); });
   document.getElementById('pactbg').addEventListener('input', function() { applyProp('actBg'); });
   document.getElementById('pactbgmode').addEventListener('change', function() { applyProp('actBgMode'); });
+  document.getElementById('ptargetcolor').addEventListener('input', function() { applyProp('targetColor'); });
   document.getElementById('ptarget').addEventListener('change', function() { applyProp('targetId'); });
   document.getElementById('psource').addEventListener('change', function() { applyProp('sourceId'); });
   document.getElementById('pvalue').addEventListener('input', function() { applyProp('actionValue'); });
@@ -1246,6 +1276,7 @@ body.authed .loggedInOnly{display:inline-flex;}
       link:d.link || '',
       actBg:d.actBg || '#ffffff',
       actBgMode:d.actBgMode || 'set',
+      targetColor:d.targetColor || '#E05454',
       targetId:d.targetId || '',
       sourceId:d.sourceId || '',
       actionValue:d.actionValue || '',
@@ -1558,6 +1589,7 @@ body.authed .loggedInOnly{display:inline-flex;}
     document.getElementById('plink').value = e.link || '';
     document.getElementById('pactbg').value = e.actBg || '#ffffff';
     document.getElementById('pactbgmode').value = e.actBgMode || 'set';
+    document.getElementById('ptargetcolor').value = e.targetColor || '#E05454';
     document.getElementById('pvalue').value = e.actionValue || '';
     refreshActionSelects(e);
     updateActionFields(e.action || 'none');
@@ -1627,6 +1659,7 @@ body.authed .loggedInOnly{display:inline-flex;}
     else if (prop==='link') e.link=g('plink');
     else if (prop==='actBg') e.actBg=g('pactbg');
     else if (prop==='actBgMode') e.actBgMode=g('pactbgmode');
+    else if (prop==='targetColor') e.targetColor=g('ptargetcolor');
     else if (prop==='targetId') e.targetId=g('ptarget');
     else if (prop==='sourceId') e.sourceId=g('psource');
     else if (prop==='actionValue') e.actionValue=g('pvalue');
@@ -1942,7 +1975,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   }
 
   function buildCSS() {
-    return '* { box-sizing: border-box; margin: 0; padding: 0; }\nbody { font-family: -apple-system, sans-serif; transition: background .2s, color .2s; }\nbody.dark-mode { background: #151515; color: #ffffff; }\nbutton { cursor: pointer; transition: transform .18s, opacity .18s; }\nbutton:hover { opacity: .85; }';
+    return '* { box-sizing: border-box; margin: 0; padding: 0; }\nbody { font-family: -apple-system, sans-serif; transition: background .2s, color .2s; }\nbody.dark-mode { background: #151515; color: #ffffff; }\nbutton { cursor: pointer; transition: transform .18s, opacity .18s; }\nbutton:hover { opacity: .85; }\n[data-wc-id] { transition: transform .22s, opacity .22s, background-color .22s, color .22s, border-color .22s, box-shadow .22s; }\n.wc-pulse { animation: wc-pulse .42s ease; }\n.wc-shake { animation: wc-shake .42s ease; }\n.wc-fade { animation: wc-fade .55s ease; }\n@keyframes wc-pulse { 50% { transform: scale(1.12); } }\n@keyframes wc-shake { 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(5px); } }\n@keyframes wc-fade { 50% { opacity: .22; } }';
   }
 
   function escJS(s) {
@@ -1955,6 +1988,10 @@ body.authed .loggedInOnly{display:inline-flex;}
     function targetLine(code) {
       if (!targetId) return "console.warn('대상 요소가 선택되지 않았습니다.');";
       return "var target = document.querySelector('[data-wc-id=\"" + escJS(targetId) + "\"]'); if (!target) return;\n  " + code;
+    }
+    function sourceTargetLine(code) {
+      if (!targetId || !sourceId) return "console.warn('대상 요소 또는 가져올 요소가 선택되지 않았습니다.');";
+      return "var source = document.querySelector('[data-wc-id=\"" + escJS(sourceId) + "\"]');\n  var target = document.querySelector('[data-wc-id=\"" + escJS(targetId) + "\"]');\n  if (!source || !target) return;\n  " + code;
     }
     if (b.action === 'link') {
       return "window.location.href = '" + escJS(b.link || '#') + "';";
@@ -1983,9 +2020,66 @@ body.authed .loggedInOnly{display:inline-flex;}
     if (b.action === 'targetImage') {
       return targetLine("if (target.tagName === 'IMG') { target.src = '" + escJS(b.actionValue || '') + "'; } else { target.style.backgroundImage = 'url(\"" + escJS(b.actionValue || '') + "\")'; target.style.backgroundSize = 'cover'; target.style.backgroundPosition = 'center'; target.textContent = ''; }");
     }
+    if (b.action === 'targetBg') {
+      return targetLine("target.style.backgroundColor = '" + escJS(b.targetColor || '#E05454') + "';");
+    }
+    if (b.action === 'targetColor') {
+      return targetLine("target.style.color = '" + escJS(b.targetColor || '#E05454') + "';");
+    }
+    if (b.action === 'targetBorder') {
+      return targetLine("target.style.border = '3px solid " + escJS(b.targetColor || '#E05454') + "'; target.style.boxShadow = '0 0 0 4px rgba(224,84,84,.16)';");
+    }
+    if (b.action === 'targetMove') {
+      var move = String(b.actionValue || '20,0').split(',');
+      var mx = parseFloat(move[0]) || 0;
+      var my = parseFloat(move[1]) || 0;
+      return targetLine("target.style.transform = 'translate(" + mx + "px, " + my + "px)';");
+    }
+    if (b.action === 'targetResize') {
+      var size = String(b.actionValue || '200,80').split(',');
+      var tw = Math.max(1, parseFloat(size[0]) || 200);
+      var th = Math.max(1, parseFloat(size[1]) || 80);
+      return targetLine("target.style.width = '" + tw + "px'; target.style.height = '" + th + "px';");
+    }
+    if (b.action === 'targetRotate') {
+      var deg = parseFloat(b.actionValue || '15') || 0;
+      return targetLine("target.style.transform = 'rotate(" + deg + "deg)';");
+    }
+    if (b.action === 'targetPulse') {
+      return targetLine("target.classList.remove('wc-pulse'); void target.offsetWidth; target.classList.add('wc-pulse');");
+    }
+    if (b.action === 'targetShake') {
+      return targetLine("target.classList.remove('wc-shake'); void target.offsetWidth; target.classList.add('wc-shake');");
+    }
+    if (b.action === 'targetFade') {
+      return targetLine("target.classList.remove('wc-fade'); void target.offsetWidth; target.classList.add('wc-fade');");
+    }
+    if (b.action === 'copyText') {
+      return sourceTargetLine("setText(target, getText(source));");
+    }
+    if (b.action === 'swapText') {
+      return sourceTargetLine("var sourceText = getText(source); var targetText = getText(target); setText(source, targetText); setText(target, sourceText);");
+    }
+    if (b.action === 'appendInput') {
+      return sourceTargetLine("var current = getText(target); var next = getText(source); setText(target, current ? current + ' ' + next : next);");
+    }
     if (b.action === 'inputToTarget') {
-      if (!targetId || !sourceId) return "console.warn('대상 요소 또는 입력창이 선택되지 않았습니다.');";
-      return "var source = document.querySelector('[data-wc-id=\"" + escJS(sourceId) + "\"]');\n  var target = document.querySelector('[data-wc-id=\"" + escJS(targetId) + "\"]');\n  if (!source || !target) return;\n  target.textContent = source.value;";
+      return sourceTargetLine("setText(target, getText(source));");
+    }
+    if (b.action === 'clearInput') {
+      return targetLine("setText(target, '');");
+    }
+    if (b.action === 'focusInput') {
+      return targetLine("if (typeof target.focus === 'function') target.focus();");
+    }
+    if (b.action === 'disableTarget') {
+      return targetLine("target.disabled = true; target.style.opacity = '.45';");
+    }
+    if (b.action === 'enableTarget') {
+      return targetLine("target.disabled = false; target.style.opacity = '';");
+    }
+    if (b.action === 'toggleDisabled') {
+      return targetLine("target.disabled = !target.disabled; target.style.opacity = target.disabled ? '.45' : '';");
     }
     if (b.action === 'count') {
       return "this.dataset.clickCount = String((Number(this.dataset.clickCount) || 0) + 1); this.textContent = '클릭 ' + this.dataset.clickCount + '회';";
@@ -2008,7 +2102,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   function buildJS() {
     var btns = els.filter(function(e) { return e.type==='button'; });
     if (!btns.length) return '// 여기에 자바스크립트를 추가하세요.';
-    var c = '';
+    var c = "function getText(el) {\n  return 'value' in el ? el.value : el.textContent;\n}\nfunction setText(el, value) {\n  if ('value' in el) el.value = value;\n  else el.textContent = value;\n}\n\n";
     btns.forEach(function(b, i) {
       var body = buildButtonAction(b);
       if (!body) return;
