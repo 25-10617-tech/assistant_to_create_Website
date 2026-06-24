@@ -73,37 +73,22 @@ body.authed .loggedInOnly{display:inline-flex;}
   background:#fff;
   box-shadow:0 2px 20px rgba(0,0,0,.2);
 }
-.canvasBar{position:absolute;left:50%;top:12px;z-index:35;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px 10px;max-width:calc(100% - 28px);background:var(--pn);border:1px solid var(--bd);border-radius:8px;padding:7px 8px;box-shadow:0 8px 24px rgba(0,0,0,.22);}
-.canvasBarGroup{display:flex;align-items:center;gap:6px;}
-.canvasBarLabel{color:var(--fg2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;}
 .pageTabs{display:flex;border:1px solid var(--bd);border-radius:6px;overflow:hidden;}
-.pageTab{min-width:58px;height:30px;border:0;border-right:1px solid var(--bd);background:var(--p2);color:var(--fg2);font-size:12px;cursor:pointer;}
+.pageTab{min-width:42px;height:30px;border:0;border-right:1px solid var(--bd);background:var(--p2);color:var(--fg2);font-size:12px;cursor:pointer;}
 .pageTab:last-child{border-right:0;}
 .pageTab:hover{background:#333;color:var(--fg);}
 .pageTab.on{background:var(--ac);color:#fff;}
-.canvasBar .canvasSizeQuick{display:flex;gap:4px;margin:0;}
-.canvasBar .sizeChip{min-width:48px;min-height:30px;padding:0 8px;}
-.canvasPresetInline{width:154px;margin:0;}
-.canvasSizeInline{display:flex;gap:4px;}
-.canvasSizeInline .fieldMini{width:62px;}
-.canvasSizeInline .fieldMini span{display:none;}
-.canvasSizeInline .pi{margin:0;padding:5px 6px;}
-.canvasBar .canvasApplyRow{grid-template-columns:54px 32px;gap:4px;}
-.canvasBar .canvasApplyRow .pi{min-height:30px;padding:0;}
+#pageTog{display:flex;align-items:center;gap:6px;}
+#pageTog span{color:var(--fg2);font-size:11px;font-weight:700;}
 #canvasHud{position:absolute;left:14px;top:14px;z-index:30;display:flex;align-items:center;gap:5px;background:rgba(37,37,37,.88);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:4px;box-shadow:0 4px 14px rgba(0,0,0,.16);opacity:.68;transition:opacity .15s,background .15s,box-shadow .15s;}
 #canvasHud:hover,#canvasHud:focus-within{opacity:1;background:var(--pn);border-color:var(--bd);box-shadow:0 6px 18px rgba(0,0,0,.2);}
 #canvasHud:not(:hover):not(:focus-within) .hudBtn,#canvasHud:not(:hover):not(:focus-within) .hudDivider{display:none;}
 .hudInfo{min-width:96px;padding:0 7px;color:var(--fg2);font-size:10px;line-height:1.25;white-space:nowrap;}
 .hudInfo strong{display:inline;color:var(--fg);font-size:12px;margin-right:6px;}
 .hudBtn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:var(--p2);border:1px solid var(--bd);border-radius:5px;color:var(--fg);font-size:13px;font-weight:800;line-height:1;cursor:pointer;}
-.hudBtn:hover,.sizeChip:hover{border-color:var(--ac);background:#333;}
-.hudBtn:active,.sizeChip:active{background:var(--ac);border-color:var(--acd);}
+.hudBtn:hover{border-color:var(--ac);background:#333;}
+.hudBtn:active{background:var(--ac);border-color:var(--acd);}
 .hudDivider{width:1px;height:26px;background:var(--bd);margin:0 2px;}
-.canvasSizeQuick{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:7px;}
-.sizeChip{min-height:34px;background:var(--p2);border:1px solid var(--bd);border-radius:6px;color:var(--fg);font-size:11px;font-weight:700;cursor:pointer;}
-.sizeChip.on{border-color:var(--ac);background:rgba(224,84,84,.15);color:#fff;}
-.canvasApplyRow{display:grid;grid-template-columns:1fr 36px;gap:6px;align-items:stretch;}
-.canvasApplyRow .pi{margin-bottom:0;}
 .fitIcon{width:15px;height:15px;border:2px solid currentColor;border-radius:2px;display:inline-block;position:relative;}
 .fitIcon::before,.fitIcon::after{content:"";position:absolute;background:currentColor;}
 .fitIcon::before{left:3px;right:3px;top:5px;height:2px;}
@@ -308,6 +293,14 @@ body.authed .loggedInOnly{display:inline-flex;}
     <button class="vb" id="vbPreview">미리보기</button>
     <button class="vb" id="vbCode">코드</button>
   </div>
+  <div id="pageTog" title="작업 화면 전환">
+    <span>화면</span>
+    <div class="pageTabs">
+      <button class="pageTab" id="btnPage1" type="button">1</button>
+      <button class="pageTab" id="btnPage2" type="button">2</button>
+      <button class="pageTab" id="btnPage3" type="button">3</button>
+    </div>
+  </div>
   <button class="hb" id="btnClear">초기화</button>
   <button class="hb pr" id="btnGenCode">코드 생성</button>
 </div>
@@ -323,7 +316,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   <div class="menuTitle" id="projectMenuTitle">현재: 미저장</div>
   <button class="menuBtn" id="btnNewProject" type="button">새 작품 만들기</button>
   <button class="menuBtn" id="btnServerSave" type="button">현재 작품 저장</button>
-  <button class="menuBtn" id="btnServerSaveNew" type="button">다른 이름</button>
+  <button class="menuBtn" id="btnServerSaveNew" type="button">작품 편집</button>
   <div class="menuSep"></div>
   <select class="authSelect" id="projectList" title="불러올 작품 선택"></select>
   <button class="menuBtn" id="btnServerLoad" type="button">선택 작품 불러오기</button>
@@ -354,43 +347,6 @@ body.authed .loggedInOnly{display:inline-flex;}
   </div>
   <div class="splitter" id="splitL"></div>
   <div id="cw">
-    <div class="canvasBar" id="canvasBar" aria-label="캔버스 설정">
-      <div class="canvasBarGroup">
-        <span class="canvasBarLabel">화면</span>
-        <div class="pageTabs">
-          <button class="pageTab" id="btnPage1" type="button">화면 1</button>
-          <button class="pageTab" id="btnPage2" type="button">화면 2</button>
-          <button class="pageTab" id="btnPage3" type="button">화면 3</button>
-        </div>
-      </div>
-      <div class="canvasBarGroup">
-        <span class="canvasBarLabel">크기</span>
-        <div class="canvasSizeQuick" aria-label="빠른 캔버스 크기">
-          <button class="sizeChip" data-canvas-preset="desktop" type="button" title="1440 x 900">PC</button>
-          <button class="sizeChip" data-canvas-preset="tablet" type="button" title="768 x 1024">태블릿</button>
-          <button class="sizeChip" data-canvas-preset="mobile" type="button" title="390 x 844">모바일</button>
-          <button class="sizeChip" data-canvas-preset="landing" type="button" title="1440 x 1800">긴 화면</button>
-        </div>
-        <select class="pi canvasPresetInline" id="canvasPreset">
-          <option value="auto">현재 화면에 맞춤</option>
-          <option value="desktop">Desktop 1440 x 900</option>
-          <option value="laptop">Laptop 1366 x 768</option>
-          <option value="tablet">Tablet 768 x 1024</option>
-          <option value="mobile">Mobile 390 x 844</option>
-          <option value="landing">Landing 1440 x 1800</option>
-          <option value="long">Long page 1440 x 2400</option>
-          <option value="custom">직접 입력</option>
-        </select>
-        <div class="canvasSizeInline">
-          <label class="fieldMini"><span>너비</span><input class="pi" id="canvasW" type="number" min="240" max="5000" title="너비"></label>
-          <label class="fieldMini"><span>높이</span><input class="pi" id="canvasH" type="number" min="240" max="8000" title="높이"></label>
-        </div>
-        <div class="canvasApplyRow">
-          <button class="pi" id="btnApplyCanvas" type="button">적용</button>
-          <button class="pi" id="btnCanvasFitAfterApply" type="button" title="적용하고 화면에 맞춤" aria-label="적용하고 화면에 맞춤"><span class="fitIcon" aria-hidden="true"></span></button>
-        </div>
-      </div>
-    </div>
     <div id="canvasHud" aria-label="캔버스 빠른 보기 조절">
       <div class="hudInfo"><strong id="hudZoom">100%</strong><span id="hudSize">1440 x 900</span></div>
       <button class="hudBtn" id="hudZoomOut" type="button" title="축소" aria-label="캔버스 축소">-</button>
@@ -1609,9 +1565,9 @@ body.authed .loggedInOnly{display:inline-flex;}
       var isNew = mode === 'new';
       var meta = normalizeProjectMeta(isNew ? { title:'내 작품' } : activeProjectMeta);
       if (!meta.title) meta.title = '내 작품';
-      document.getElementById('projectInfoTitle').textContent = isNew ? '새 작품 만들기' : '작품 정보 수정';
+      document.getElementById('projectInfoTitle').textContent = isNew ? '새 작품 만들기' : '작품 편집';
       document.getElementById('projectInfoHint').textContent = isNew ? '작품 정보를 입력하고 캔버스 크기를 정하면 바로 저장됩니다.' : '작품 이름, 소개, 제작자와 캔버스 크기를 수정합니다.';
-      document.getElementById('projectInfoSave').textContent = isNew ? '새 작품 저장' : '수정 저장';
+      document.getElementById('projectInfoSave').textContent = isNew ? '새 작품 저장' : '저장';
       document.getElementById('projectInfoName').value = meta.title;
       document.getElementById('projectInfoDescription').value = meta.description;
       document.getElementById('projectInfoAuthor').value = meta.author;
@@ -1981,16 +1937,14 @@ body.authed .loggedInOnly{display:inline-flex;}
     var preset = document.getElementById('canvasPreset');
     var wInput = document.getElementById('canvasW');
     var hInput = document.getElementById('canvasH');
-    if (!preset || !wInput || !hInput) return;
     var fixed = canvasSizeForPreset();
-    preset.value = canvasPreset;
-    wInput.value = Math.round((fixed || lastCanvasSize).w);
-    hInput.value = Math.round((fixed || lastCanvasSize).h);
-    wInput.disabled = canvasPreset !== 'custom';
-    hInput.disabled = canvasPreset !== 'custom';
-    document.querySelectorAll('[data-canvas-preset]').forEach(function(btn) {
-      btn.classList.toggle('on', btn.dataset.canvasPreset === canvasPreset);
-    });
+    if (preset && wInput && hInput) {
+      preset.value = canvasPreset;
+      wInput.value = Math.round((fixed || lastCanvasSize).w);
+      hInput.value = Math.round((fixed || lastCanvasSize).h);
+      wInput.disabled = canvasPreset !== 'custom';
+      hInput.disabled = canvasPreset !== 'custom';
+    }
     updateCanvasHud();
   }
 
@@ -2006,18 +1960,12 @@ body.authed .loggedInOnly{display:inline-flex;}
   function syncCanvasHudPosition() {
     var cwEl = document.getElementById('cw');
     var hud = document.getElementById('canvasHud');
-    var bar = document.getElementById('canvasBar');
     if (!cwEl) return;
     if (hud) {
       var x = cwEl.scrollLeft + 14;
       var y = cwEl.scrollTop + Math.max(14, cwEl.clientHeight - hud.offsetHeight - 14);
       hud.style.left = x + 'px';
       hud.style.top = y + 'px';
-    }
-    if (bar) {
-      bar.style.left = (cwEl.scrollLeft + cwEl.clientWidth / 2) + 'px';
-      bar.style.top = (cwEl.scrollTop + 12) + 'px';
-      bar.style.transform = 'translateX(-50%)';
     }
   }
 
@@ -2518,41 +2466,9 @@ body.authed .loggedInOnly{display:inline-flex;}
   document.getElementById('btnPage1').addEventListener('click', function() { setActivePage(1); });
   document.getElementById('btnPage2').addEventListener('click', function() { setActivePage(2); });
   document.getElementById('btnPage3').addEventListener('click', function() { setActivePage(3); });
-  document.getElementById('canvasPreset').addEventListener('change', function() {
-    chooseCanvasPreset(this.value, true, false);
-  });
-  document.getElementById('canvasW').addEventListener('input', function() {
-    canvasPreset = 'custom';
-    customCanvasSize.w = clamp(+this.value || customCanvasSize.w, 240, 5000);
-    updateCanvasControls();
-  });
-  document.getElementById('canvasH').addEventListener('input', function() {
-    canvasPreset = 'custom';
-    customCanvasSize.h = clamp(+this.value || customCanvasSize.h, 240, 8000);
-    updateCanvasControls();
-  });
-  document.getElementById('btnApplyCanvas').addEventListener('click', function() {
-    canvasPreset = document.getElementById('canvasPreset').value;
-    if (canvasPreset === 'custom') {
-      customCanvasSize = {
-        w: clamp(+document.getElementById('canvasW').value || customCanvasSize.w, 240, 5000),
-        h: clamp(+document.getElementById('canvasH').value || customCanvasSize.h, 240, 8000)
-      };
-    }
-    applyCanvasPreset(true);
-  });
-  document.getElementById('btnCanvasFitAfterApply').addEventListener('click', function() {
-    document.getElementById('btnApplyCanvas').click();
-    fitCanvasZoom();
-  });
   document.getElementById('hudZoomOut').addEventListener('click', function() { setCanvasZoom(canvasZoom / 1.2); });
   document.getElementById('hudZoomIn').addEventListener('click', function() { setCanvasZoom(canvasZoom * 1.2); });
   document.getElementById('hudZoomFit').addEventListener('click', fitCanvasZoom);
-  document.querySelectorAll('[data-canvas-preset]').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      chooseCanvasPreset(this.dataset.canvasPreset, true, true);
-    });
-  });
   document.getElementById('btnLayerUp').addEventListener('click', function() { moveLayer(1); });
   document.getElementById('btnLayerDown').addEventListener('click', function() { moveLayer(-1); });
   document.getElementById('btnElementLayerUp').addEventListener('click', function() { moveLayer(1); closeElementMenu(); });
@@ -2701,9 +2617,9 @@ body.authed .loggedInOnly{display:inline-flex;}
   var HELP_DETAILS = {
     newProject: {
       title:'새 작품 만들기',
-      body:'작품 메뉴에서 새 작품 만들기를 누르면 현재 작업을 닫을지 확인한 뒤 캔버스 선택 창이 열립니다. 카드를 한 번 누르면 선택만 되고, 선택한 크기로 만들기 버튼을 눌러야 실제로 새 작품이 시작됩니다.',
-      points:['랜딩 페이지는 긴 소개 사이트에 적합합니다.','모바일은 휴대폰 화면처럼 세로가 긴 작업에 적합합니다.','직접 입력 카드는 특수한 크기의 배너나 긴 페이지를 만들 때 사용합니다.'],
-      example:'예시: 쇼핑몰 첫 화면을 만들면 랜딩 페이지를 선택하고, 앱 화면 목업은 모바일을 선택하세요.'
+      body:'작품 메뉴에서 새 작품 만들기를 누르면 작품 이름, 소개, 제작자 이름, 캔버스 크기를 입력하는 창이 열립니다.',
+      points:['작품 이름은 저장 목록에 표시됩니다.','작품 소개와 제작자 이름은 작품 정보로 함께 저장됩니다.','캔버스 크기는 만들 사이트의 화면 기준에 맞춰 선택하거나 직접 입력합니다.'],
+      example:'예시: 쇼핑몰 첫 화면을 만들면 작품 이름과 소개를 입력하고 캔버스 종류를 Landing으로 선택합니다.'
     },
     canvas: {
       title:'캔버스 크기 고르는 법',
@@ -2714,8 +2630,8 @@ body.authed .loggedInOnly{display:inline-flex;}
     save: {
       title:'저장과 불러오기',
       body:'로그인 후 작품 메뉴에서 저장 기능을 사용할 수 있습니다. 현재 GitHub Pages 상태에서는 이 브라우저 안에 저장되는 로컬 저장 방식입니다.',
-      points:['새 작품 만들기: 이름, 소개, 제작자, 캔버스 크기를 정하고 저장','현재 작품 저장: 같은 작품에 덮어쓰기','다른 이름: 작품 이름, 소개, 제작자, 캔버스 크기 수정','선택 작품 불러오기: 저장 목록에서 고른 작품을 캔버스에 적용','선택 작품 삭제: 저장된 작품 제거'],
-      example:'예시: 작품 이름이나 캔버스 크기를 바꾸려면 작품 메뉴에서 다른 이름을 누릅니다.'
+      points:['새 작품 만들기: 이름, 소개, 제작자, 캔버스 크기를 정하고 저장','현재 작품 저장: 같은 작품에 덮어쓰기','작품 편집: 작품 이름, 소개, 제작자, 캔버스 크기 수정','선택 작품 불러오기: 저장 목록에서 고른 작품을 캔버스에 적용','선택 작품 삭제: 저장된 작품 제거'],
+      example:'예시: 작품 이름이나 캔버스 크기를 바꾸려면 작품 메뉴에서 작품 편집을 누릅니다.'
     },
     login: {
       title:'로그인과 보안',
