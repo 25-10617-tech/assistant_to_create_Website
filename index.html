@@ -201,15 +201,21 @@ body.authed .loggedInOnly{display:inline-flex;}
 .helpPageInner{max-width:980px;margin:0 auto;padding:30px 24px 70px;}
 .helpPageInner h1{font-size:24px;margin-bottom:8px;color:#151515;}
 .helpLead{font-size:14px;line-height:1.6;color:#555;margin-bottom:22px;}
+.helpLayout{display:grid;grid-template-columns:minmax(220px,280px) minmax(0,1fr);gap:18px;align-items:start;}
+.helpSidebar{position:sticky;top:18px;background:#fff;border:1px solid #d8d8d8;border-radius:8px;padding:12px;max-height:calc(100vh - 96px);overflow:auto;}
+.helpSidebar h2{font-size:13px;margin:10px 0 7px;color:#333;}
+.helpSidebar h2:first-child{margin-top:0;}
+.helpContent{min-width:0;}
 .helpSection{padding:20px 0;border-top:1px solid #d8d8d8;}
 .helpSection h2{font-size:17px;margin-bottom:10px;color:#202020;}
-.helpGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;}
-.helpItem{background:#fff;border:1px solid #ddd;border-radius:7px;padding:14px;min-height:118px;text-align:left;cursor:pointer;}
+.helpSection.compact{padding-top:0;border-top:0;}
+.helpGrid{display:grid;grid-template-columns:1fr;gap:7px;}
+.helpItem{background:#fff;border:1px solid #ddd;border-radius:7px;padding:10px 11px;min-height:0;text-align:left;cursor:pointer;}
 .helpItem:hover,.helpItem.on{border-color:var(--ac);box-shadow:0 0 0 3px rgba(224,84,84,.12);}
-.helpItem h3{font-size:14px;margin-bottom:7px;color:#222;}
+.helpItem h3{font-size:13px;margin-bottom:4px;color:#222;}
 .helpItem p,.helpItem li{font-size:12px;line-height:1.55;color:#555;}
 .helpItem ul{padding-left:18px;margin-top:6px;}
-.helpDetailPanel{display:none;background:#fff;border:1px solid #d2d2d2;border-radius:8px;margin:16px 0 6px;padding:18px;box-shadow:0 10px 28px rgba(0,0,0,.08);}
+.helpDetailPanel{display:block;background:#fff;border:1px solid #d2d2d2;border-radius:8px;margin:0 0 16px;padding:18px;box-shadow:0 10px 28px rgba(0,0,0,.08);}
 .helpDetailPanel.on{display:block;}
 .helpDetailPanel h2{font-size:18px;margin-bottom:8px;color:#1c1c1c;}
 .helpDetailPanel p,.helpDetailPanel li{font-size:13px;line-height:1.65;color:#444;}
@@ -220,9 +226,12 @@ body.authed .loggedInOnly{display:inline-flex;}
 .helpMini strong{display:block;color:#222;margin-bottom:3px;}
 .helpExample{background:#f3f3f3;border:1px solid #ddd;border-radius:6px;padding:10px 12px;margin-top:10px;font-size:12px;line-height:1.55;color:#333;}
 .helpExample strong{display:block;margin-bottom:4px;color:#222;}
+.helpFlowDetails{background:#fff;border:1px solid #ddd;border-radius:8px;margin-top:16px;padding:0 14px 14px;}
+.helpFlowDetails summary{cursor:pointer;padding:13px 0;font-size:15px;font-weight:700;color:#222;}
 .helpSteps{display:grid;gap:8px;counter-reset:helpstep;}
 .helpStep{position:relative;background:#fff;border:1px solid #ddd;border-radius:7px;padding:12px 14px 12px 42px;font-size:13px;line-height:1.5;color:#444;}
 .helpStep::before{counter-increment:helpstep;content:counter(helpstep);position:absolute;left:13px;top:12px;width:20px;height:20px;border-radius:50%;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+@media (max-width:760px){.helpLayout{grid-template-columns:1fr;}.helpSidebar{position:static;max-height:none;}.helpPageInner{padding:22px 16px 70px;}}
 .bottomNav{height:42px;background:var(--pn);border-top:1px solid var(--bd);display:flex;align-items:center;justify-content:center;gap:22px;flex-shrink:0;color:var(--fg2);font-size:12px;}
 .bottomNav button,.bottomNav a{background:transparent;border:0;color:var(--fg2);font-size:12px;cursor:pointer;text-decoration:none;}
 .bottomNav button:hover,.bottomNav a:hover{color:var(--fg);}
@@ -303,50 +312,50 @@ body.authed .loggedInOnly{display:inline-flex;}
   <div id="helpPage">
     <div class="helpPageInner">
       <h1>WebCraft Studio 도움말</h1>
-      <p class="helpLead">왼쪽에서 요소를 추가하고, 가운데 캔버스에서 배치한 뒤, 오른쪽 속성 패널에서 내용과 스타일을 조정합니다.</p>
-      <div class="helpDetailPanel" id="helpDetailPanel" aria-live="polite"></div>
-      <section class="helpSection">
-        <h2>기본 흐름</h2>
-        <div class="helpSteps">
-          <div class="helpStep">왼쪽 요소 목록에서 텍스트, 이미지, 버튼, 카드 같은 요소를 눌러 캔버스에 추가합니다.</div>
-          <div class="helpStep">캔버스에서 요소를 드래그해 위치를 옮기고, 오른쪽 아래 조절점으로 크기를 바꿉니다.</div>
-          <div class="helpStep">오른쪽 속성 패널에서 텍스트, 색상, 모양, 클릭 동작, 화면 번호를 편집합니다.</div>
-          <div class="helpStep">미리보기에서 버튼 동작과 화면 전환을 확인하고, 코드 생성에서 HTML/CSS/JavaScript를 복사합니다.</div>
-        </div>
-      </section>
-      <section class="helpSection">
-        <h2>작품과 캔버스</h2>
-        <div class="helpGrid">
-          <div class="helpItem" data-help="newProject" tabindex="0"><h3>새 작품 만들기</h3><p>캔버스 크기 카드를 고르고 새 작업을 시작합니다.</p></div>
-          <div class="helpItem" data-help="canvas" tabindex="0"><h3>캔버스 크기</h3><p>사이트 종류에 맞는 화면 크기를 선택합니다.</p></div>
-          <div class="helpItem" data-help="save" tabindex="0"><h3>저장과 불러오기</h3><p>작품 메뉴에서 저장, 불러오기, 삭제를 관리합니다.</p></div>
-          <div class="helpItem" data-help="login" tabindex="0"><h3>로그인 방식</h3><p>현재 저장 방식과 주의할 점을 확인합니다.</p></div>
-        </div>
-      </section>
-      <section class="helpSection">
-        <h2>요소 사용법</h2>
-        <div class="helpGrid">
-          <div class="helpItem" data-help="text" tabindex="0"><h3>텍스트와 제목</h3><p>문구, 크기, 색상, 배경을 편집합니다.</p></div>
-          <div class="helpItem" data-help="image" tabindex="0"><h3>이미지</h3><p>URL 이미지, 자리 표시, 모양 자르기를 설정합니다.</p></div>
-          <div class="helpItem" data-help="icon" tabindex="0"><h3>아이콘</h3><p>기본 아이콘과 직접 입력 아이콘을 사용합니다.</p></div>
-          <div class="helpItem" data-help="button" tabindex="0"><h3>버튼</h3><p>클릭 동작과 조건을 설정합니다.</p></div>
-          <div class="helpItem" data-help="input" tabindex="0"><h3>입력창</h3><p>사용자 입력값을 버튼 동작에 연결합니다.</p></div>
-          <div class="helpItem" data-help="select" tabindex="0"><h3>드롭다운</h3><p>여러 선택지를 접어서 보여줍니다.</p></div>
-          <div class="helpItem" data-help="checks" tabindex="0"><h3>체크박스와 라디오</h3><p>선택 상태를 조건으로 사용합니다.</p></div>
-          <div class="helpItem" data-help="list" tabindex="0"><h3>목록</h3><p>여러 항목을 글머리표나 숫자로 표시합니다.</p></div>
-          <div class="helpItem" data-help="nav" tabindex="0"><h3>네비게이션</h3><p>브랜드명과 메뉴를 한 줄로 구성합니다.</p></div>
-          <div class="helpItem" data-help="card" tabindex="0"><h3>카드</h3><p>묶음 정보, 가격표, 혜택 박스를 만듭니다.</p></div>
-          <div class="helpItem" data-help="divider" tabindex="0"><h3>구분선</h3><p>섹션 사이를 시각적으로 나눕니다.</p></div>
-        </div>
-      </section>
-      <section class="helpSection">
-        <h2>편집 팁</h2>
-        <div class="helpGrid">
-          <div class="helpItem" data-help="pages" tabindex="0"><h3>여러 화면</h3><p>화면 번호와 화면 이동 버튼을 함께 씁니다.</p></div>
-          <div class="helpItem" data-help="layers" tabindex="0"><h3>레이어</h3><p>겹치는 순서를 조정합니다.</p></div>
-          <div class="helpItem" data-help="preview" tabindex="0"><h3>미리보기와 코드</h3><p>동작 확인과 코드 복사를 진행합니다.</p></div>
-        </div>
-      </section>
+      <p class="helpLead">왼쪽 목록에서 궁금한 항목을 고르면 오른쪽에 자세한 사용법과 예시가 표시됩니다.</p>
+      <div class="helpLayout">
+        <aside class="helpSidebar" aria-label="도움말 목록">
+          <h2>작품</h2>
+          <div class="helpGrid">
+            <div class="helpItem" data-help="newProject" tabindex="0"><h3>새 작품 만들기</h3><p>크기 선택부터 시작</p></div>
+            <div class="helpItem" data-help="canvas" tabindex="0"><h3>캔버스 크기</h3><p>화면 기준 정하기</p></div>
+            <div class="helpItem" data-help="save" tabindex="0"><h3>저장과 불러오기</h3><p>작품 관리</p></div>
+            <div class="helpItem" data-help="login" tabindex="0"><h3>로그인 방식</h3><p>저장 방식 이해</p></div>
+          </div>
+          <h2>요소</h2>
+          <div class="helpGrid">
+            <div class="helpItem" data-help="text" tabindex="0"><h3>텍스트와 제목</h3><p>문구와 강조</p></div>
+            <div class="helpItem" data-help="image" tabindex="0"><h3>이미지</h3><p>사진과 모양</p></div>
+            <div class="helpItem" data-help="icon" tabindex="0"><h3>아이콘</h3><p>기호와 SVG</p></div>
+            <div class="helpItem" data-help="button" tabindex="0"><h3>버튼</h3><p>클릭 동작 전체</p></div>
+            <div class="helpItem" data-help="input" tabindex="0"><h3>입력창</h3><p>값 입력</p></div>
+            <div class="helpItem" data-help="select" tabindex="0"><h3>드롭다운</h3><p>선택지</p></div>
+            <div class="helpItem" data-help="checks" tabindex="0"><h3>체크박스와 라디오</h3><p>선택 조건</p></div>
+            <div class="helpItem" data-help="list" tabindex="0"><h3>목록</h3><p>여러 항목</p></div>
+            <div class="helpItem" data-help="nav" tabindex="0"><h3>네비게이션</h3><p>상단 메뉴</p></div>
+            <div class="helpItem" data-help="card" tabindex="0"><h3>카드</h3><p>정보 박스</p></div>
+            <div class="helpItem" data-help="divider" tabindex="0"><h3>구분선</h3><p>섹션 나누기</p></div>
+          </div>
+          <h2>편집</h2>
+          <div class="helpGrid">
+            <div class="helpItem" data-help="pages" tabindex="0"><h3>여러 화면</h3><p>화면 전환</p></div>
+            <div class="helpItem" data-help="layers" tabindex="0"><h3>레이어</h3><p>겹침 순서</p></div>
+            <div class="helpItem" data-help="preview" tabindex="0"><h3>미리보기와 코드</h3><p>테스트와 복사</p></div>
+          </div>
+        </aside>
+        <main class="helpContent">
+          <div class="helpDetailPanel" id="helpDetailPanel" aria-live="polite"></div>
+          <details class="helpFlowDetails">
+            <summary>기본 흐름 보기</summary>
+            <div class="helpSteps">
+              <div class="helpStep">왼쪽 요소 목록에서 텍스트, 이미지, 버튼, 카드 같은 요소를 눌러 캔버스에 추가합니다.</div>
+              <div class="helpStep">캔버스에서 요소를 드래그해 위치를 옮기고, 오른쪽 아래 조절점으로 크기를 바꿉니다.</div>
+              <div class="helpStep">오른쪽 속성 패널에서 텍스트, 색상, 모양, 클릭 동작, 화면 번호를 편집합니다.</div>
+              <div class="helpStep">미리보기에서 버튼 동작과 화면 전환을 확인하고, 코드 생성에서 HTML/CSS/JavaScript를 복사합니다.</div>
+            </div>
+          </details>
+        </main>
+      </div>
     </div>
   </div>
   <div class="splitter" id="splitR"></div>
@@ -2082,6 +2091,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   document.getElementById('bottomHelp').addEventListener('click', function() {
     closeProjectMenu();
     setView('help');
+    renderHelpDetail('button');
   });
   document.getElementById('bottomContact').addEventListener('click', function() {
     document.getElementById('contactModal').style.display = 'flex';
