@@ -175,9 +175,27 @@ body.authed .loggedInOnly{display:inline-flex;}
 #copybtn{position:sticky;top:12px;left:calc(100% - 56px);z-index:5;background:var(--p2);border:1px solid var(--bd);color:var(--fg);padding:4px 11px;border-radius:4px;font-size:12px;cursor:pointer;}
 
 /* 미리보기 */
-#prev{display:none;flex:1;min-width:0;min-height:0;}
-#prev.on{display:flex;}
-#prev iframe{flex:1;border:none;background:#fff;}
+#prev{display:none;flex:1;min-width:0;min-height:0;background:#d7d7d7;overflow:auto;padding:24px;}
+#prev.on{display:block;}
+#previewWrap{transform-origin:top left;}
+#previewStage{position:relative;background:#fff;box-shadow:0 2px 20px rgba(0,0,0,.18);overflow:hidden;}
+#previewStage .wc-page-hidden{display:none!important;}
+#previewStage [data-wc-id]{transition:transform .22s,opacity .22s,background-color .22s,color .22s,border-color .22s,box-shadow .22s;}
+#previewStage .wc-pulse{animation:wc-pulse .42s ease;}
+#previewStage .wc-shake{animation:wc-shake .42s ease;}
+#previewStage .wc-fade{animation:wc-fade .55s ease;}
+#previewStage .wc-fadeIn{animation:wc-fade-in .45s ease both;}
+#previewStage .wc-slideUp{animation:wc-slide-up .45s ease both;}
+#previewStage .wc-popIn{animation:wc-pop-in .38s ease both;}
+#previewStage .wc-hoverGrow:hover{transform:scale(1.06);}
+#previewStage .wc-hoverLift:hover{transform:translateY(-6px);box-shadow:0 10px 24px rgba(0,0,0,.16);}
+#previewStage .wc-loopPulse{animation:wc-pulse 1.4s ease infinite;}
+@keyframes wc-pulse{50%{transform:scale(1.12);}}
+@keyframes wc-shake{20%{transform:translateX(-8px);}40%{transform:translateX(8px);}60%{transform:translateX(-5px);}80%{transform:translateX(5px);}}
+@keyframes wc-fade{50%{opacity:.22;}}
+@keyframes wc-fade-in{from{opacity:0;}to{opacity:1;}}
+@keyframes wc-slide-up{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+@keyframes wc-pop-in{from{opacity:0;transform:scale(.86);}to{opacity:1;transform:scale(1);}}
 #helpPage{display:none;flex:1;background:#f5f5f5;overflow:auto;color:#222;}
 #helpPage.on{display:block;}
 .helpPageInner{max-width:980px;margin:0 auto;padding:30px 24px 70px;}
@@ -270,7 +288,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   </div>
   <div class="splitter" id="splitL"></div>
   <div id="cw"><div id="cv"><div id="hint"><div class="hi">+</div><p>왼쪽에서 요소를 추가하세요</p></div></div></div>
-  <div id="prev"><iframe id="pframe" sandbox="allow-scripts allow-forms allow-modals"></iframe></div>
+  <div id="prev"><div id="previewWrap"><div id="previewStage"></div></div></div>
   <div id="codev">
     <div id="ctabs">
       <div class="ct on" data-tab="html">HTML</div>
@@ -2160,6 +2178,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   window.addEventListener('resize', function() {
     closeProjectMenu();
     if (curView === 'design') updateCanvasFrame(true);
+    if (curView === 'preview') fitInlinePreview();
   });
   updateCanvasFrame(false);
   loadDesign();
@@ -3516,17 +3535,147 @@ body.authed .loggedInOnly{display:inline-flex;}
     document.getElementById('cpre').textContent = gcode[t] || '';
   }
 
-  // ── 미리보기: 캔버스 비율 그대로 iframe에 렌더 ──
+  function fitInlinePreview() {
+    var canvas = getCanvasSize();
+    var wrap = document.getElementById('previewWrap');
+    var stage = document.getElementById('previewStage');
+    var prev = document.getElementById('prev');
+    if (!wrap || !stage || !prev) return;
+    var w = Math.max(1, Math.round(canvas.w));
+    var h = Math.max(1, Math.round(canvas.h));
+    var scale = Math.min(1, (prev.clientWidth - 48) / w, (prev.clientHeight - 48) / h);
+    if (!isFinite(scale) || scale <= 0) scale = 1;
+    stage.style.width = w + 'px';
+    stage.style.height = h + 'px';
+    wrap.style.width = (w * scale) + 'px';
+    wrap.style.height = (h * scale) + 'px';
+    wrap.style.transform = 'scale(' + scale + ')';
+  }
+
+  function previewGetControl(el) {
+    if (!el) return null;
+    if ('value' in el || el.type === 'checkbox' || el.type === 'radio') return el;
+    return el.querySelector ? el.querySelector('input, select, textarea') : null;
+  }
+
+  function previewGetText(el) {
+    var control = previewGetControl(el);
+    if (control) {
+      if (control.type === 'checkbox' || control.type === 'radio') return control.checked ? (el.textContent || control.value || 'checked').trim() : '';
+      return control.value;
+    }
+    return el ? el.textContent : '';
+  }
+
+  function previewSetText(el, value) {
+    var control = previewGetControl(el);
+    if (control && control.tagName !== 'SELECT' && control.type !== 'checkbox' && control.type !== 'radio') control.value = value;
+    else if (el) el.textContent = value;
+  }
+
+  function previewShowPage(page) {
+    document.querySelectorAll('#previewStage [data-wc-page]').forEach(function(el) {
+      el.classList.toggle('wc-page-hidden', el.dataset.wcPage !== String(page));
+    });
+  }
+
+  function previewCheckCondition(sourceId, cond, expected) {
+    if (!cond || cond === 'always') return true;
+    var source = document.querySelector('#previewStage [data-wc-id="' + sourceId + '"]');
+    if (!source) return false;
+    var control = previewGetControl(source);
+    var value = previewGetText(source).trim();
+    if (cond === 'notEmpty') return value !== '';
+    if (cond === 'empty') return value === '';
+    if (cond === 'equals') return value === String(expected || '');
+    if (cond === 'checked') return !!(control && control.checked);
+    if (cond === 'unchecked') return !!(control && !control.checked);
+    return true;
+  }
+
+  function previewCollectFormValues() {
+    var lines = [];
+    document.querySelectorAll('#previewStage [data-wc-type="input"], #previewStage [data-wc-type="select"], #previewStage [data-wc-type="checkbox"], #previewStage [data-wc-type="radio"]').forEach(function(el) {
+      var value = previewGetText(el);
+      if (value) lines.push(value);
+    });
+    return lines.join('\n');
+  }
+
+  function runPreviewAction(buttonEl, config, actionName) {
+    if (!actionName || actionName === 'none') return;
+    var target = config.targetId ? document.querySelector('#previewStage [data-wc-id="' + config.targetId + '"]') : null;
+    var source = config.sourceId ? document.querySelector('#previewStage [data-wc-id="' + config.sourceId + '"]') : null;
+    if (actionName === 'alert') return showMessage('미리보기', config.msg || '버튼 클릭!', '');
+    if (actionName === 'link') return window.open(config.link || '#', '_blank', 'noopener');
+    if (actionName === 'bg') {
+      var stage = document.getElementById('previewStage');
+      if (config.actBgMode === 'toggle') {
+        stage.dataset.bgOn = stage.dataset.bgOn === '1' ? '0' : '1';
+        stage.style.backgroundColor = stage.dataset.bgOn === '1' ? (config.actBg || '#ffffff') : '#ffffff';
+      } else {
+        stage.style.backgroundColor = config.actBg || '#ffffff';
+      }
+      return;
+    }
+    if (actionName === 'text') return buttonEl.textContent = config.msg || '완료!';
+    if (!target && /^(target|copyText|swapText|appendInput|inputToTarget|formSummary|clearInput|focusInput|disableTarget|enableTarget|toggleDisabled)/.test(actionName)) return;
+    if (actionName === 'targetShow') target.style.display = target.dataset.originalDisplay || '';
+    else if (actionName === 'targetHide') { if (!target.dataset.originalDisplay) target.dataset.originalDisplay = target.style.display || ''; target.style.display = 'none'; }
+    else if (actionName === 'targetToggle') { if (target.style.display === 'none') target.style.display = target.dataset.originalDisplay || ''; else { if (!target.dataset.originalDisplay) target.dataset.originalDisplay = target.style.display || ''; target.style.display = 'none'; } }
+    else if (actionName === 'targetText') previewSetText(target, config.actionValue || '바뀐 텍스트');
+    else if (actionName === 'targetImage') { if (target.tagName === 'IMG') target.src = config.actionValue || ''; else { target.style.backgroundImage = 'url("' + (config.actionValue || '') + '")'; target.style.backgroundSize = 'cover'; target.style.backgroundPosition = 'center'; target.textContent = ''; } }
+    else if (actionName === 'targetBg') target.style.backgroundColor = config.targetColor || '#E05454';
+    else if (actionName === 'targetColor') target.style.color = config.targetColor || '#E05454';
+    else if (actionName === 'targetBorder') { target.style.border = '3px solid ' + (config.targetColor || '#E05454'); target.style.boxShadow = '0 0 0 4px rgba(224,84,84,.16)'; }
+    else if (actionName === 'targetMove') { var move = String(config.actionValue || '20,0').split(','); target.style.transform = 'translate(' + (parseFloat(move[0]) || 0) + 'px, ' + (parseFloat(move[1]) || 0) + 'px)'; }
+    else if (actionName === 'targetResize') { var size = String(config.actionValue || '200,80').split(','); target.style.width = Math.max(1, parseFloat(size[0]) || 200) + 'px'; target.style.height = Math.max(1, parseFloat(size[1]) || 80) + 'px'; }
+    else if (actionName === 'targetRotate') target.style.transform = 'rotate(' + (parseFloat(config.actionValue || '15') || 0) + 'deg)';
+    else if (actionName === 'targetPulse') { target.classList.remove('wc-pulse'); void target.offsetWidth; target.classList.add('wc-pulse'); }
+    else if (actionName === 'targetShake') { target.classList.remove('wc-shake'); void target.offsetWidth; target.classList.add('wc-shake'); }
+    else if (actionName === 'targetFade') { target.classList.remove('wc-fade'); void target.offsetWidth; target.classList.add('wc-fade'); }
+    else if (source && actionName === 'copyText') previewSetText(target, previewGetText(source));
+    else if (source && actionName === 'swapText') { var sourceText = previewGetText(source); var targetText = previewGetText(target); previewSetText(source, targetText); previewSetText(target, sourceText); }
+    else if (source && actionName === 'appendInput') { var current = previewGetText(target); var next = previewGetText(source); previewSetText(target, current ? current + ' ' + next : next); }
+    else if (source && actionName === 'inputToTarget') previewSetText(target, previewGetText(source));
+    else if (actionName === 'formSummary') previewSetText(target, previewCollectFormValues());
+    else if (actionName === 'clearInput') previewSetText(target, '');
+    else if (actionName === 'focusInput') { var control = previewGetControl(target); if (control && control.focus) control.focus(); }
+    else if (actionName === 'disableTarget') { var disableControl = previewGetControl(target) || target; disableControl.disabled = true; target.style.opacity = '.45'; }
+    else if (actionName === 'enableTarget') { var enableControl = previewGetControl(target) || target; enableControl.disabled = false; target.style.opacity = ''; }
+    else if (actionName === 'toggleDisabled') { var toggleControl = previewGetControl(target) || target; toggleControl.disabled = !toggleControl.disabled; target.style.opacity = toggleControl.disabled ? '.45' : ''; }
+    else if (actionName === 'count') { buttonEl.dataset.clickCount = String((Number(buttonEl.dataset.clickCount) || 0) + 1); buttonEl.textContent = '클릭 ' + buttonEl.dataset.clickCount + '회'; }
+    else if (actionName === 'hide') buttonEl.style.display = 'none';
+    else if (actionName === 'dark') document.getElementById('previewStage').classList.toggle('dark-mode');
+    else if (actionName === 'grow') { buttonEl.style.transform = 'scale(1.12)'; setTimeout(function() { buttonEl.style.transform = ''; }, 180); }
+    else if (actionName === 'goPage') previewShowPage(config.actionValue || '1');
+  }
+
+  function attachPreviewActions() {
+    els.filter(function(e) { return e.type === 'button'; }).forEach(function(config) {
+      var buttonEl = document.querySelector('#previewStage [data-wc-id="' + config.id + '"]');
+      if (!buttonEl) return;
+      buttonEl.addEventListener('click', function() {
+        if (!previewCheckCondition(config.condSourceId || '', config.cond || 'always', config.condValue || '')) return;
+        [config.action || 'none', config.action2 || 'none', config.action3 || 'none'].forEach(function(actionName) {
+          runPreviewAction(buttonEl, config, actionName);
+        });
+      });
+    });
+  }
+
+  // ── 미리보기: 현재 캔버스 데이터를 즉시 DOM으로 렌더 ──
   function doPreview() {
     syncCanvasDomToElements();
-    var css = buildCSS(true);
-    var js  = buildJS();
-    var frame = document.getElementById('pframe');
-    var html = buildHTML(css, js, true);
-    frame.style.width = '';
-    frame.style.height = '';
-    frame.removeAttribute('srcdoc');
-    frame.src = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
+    var canvas = getCanvasSize();
+    var stage = document.getElementById('previewStage');
+    if (!stage) return;
+    stage.style.width = Math.max(1, Math.round(canvas.w)) + 'px';
+    stage.style.height = Math.max(1, Math.round(canvas.h)) + 'px';
+    stage.innerHTML = buildBody();
+    previewShowPage(activePage || 1);
+    attachPreviewActions();
+    fitInlinePreview();
   }
 
 })();
