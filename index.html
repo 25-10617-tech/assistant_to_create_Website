@@ -132,6 +132,10 @@ body.authed .loggedInOnly{display:inline-flex;}
 .fieldMini span{font-size:10px;color:var(--fg2);font-weight:600;}
 .miniRow{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
 .miniRow.three{grid-template-columns:1fr 1fr 1fr;}
+.toggleRow{display:flex;align-items:center;gap:8px;color:var(--fg);font-size:12px;cursor:pointer;}
+.toggleRow input{width:15px;height:15px;accent-color:var(--ac);}
+.el.initialHidden{opacity:.36;}
+.el.initialHidden::before{content:'숨김';position:absolute;left:0;top:-19px;background:#333;color:#ddd;border:1px solid var(--bd);border-radius:4px;padding:2px 5px;font-size:10px;pointer-events:none;}
 .layerList{display:flex;flex-direction:column;gap:4px;max-height:190px;overflow:auto;}
 .layerItem{width:100%;display:flex;align-items:center;gap:6px;background:var(--p2);border:1px solid var(--bd);color:var(--fg);padding:6px 7px;border-radius:4px;font-size:12px;cursor:pointer;text-align:left;}
 .layerItem.on{border-color:var(--ac);color:#fff;}
@@ -489,6 +493,7 @@ body.authed .loggedInOnly{display:inline-flex;}
       <div class="ps"><div class="pl">위치(px)</div><div class="pr2"><label class="fieldMini"><span>X</span><input class="pi" id="px" type="number" placeholder="X"></label><label class="fieldMini"><span>Y</span><input class="pi" id="py" type="number" placeholder="Y"></label></div></div>
       <div class="ps"><div class="pl" id="row-size-label">크기(px)</div><div class="pr2"><label class="fieldMini"><span>너비</span><input class="pi" id="pw" type="number" placeholder="너비"></label><label class="fieldMini"><span>높이</span><input class="pi" id="ph2" type="number" placeholder="높이"></label></div></div>
       <div class="ps"><div class="pl">요소 화면</div><input class="pi" id="ppage" type="number" min="1" max="9"></div>
+      <div class="ps" id="row-initial-hidden"><label class="toggleRow"><input id="pinitialhidden" type="checkbox">처음엔 숨김</label></div>
       <div class="ps" id="row-anim"><div class="pl">애니메이션</div><select class="pi" id="panim"><option value="none">없음</option><option value="fadeIn">등장: 서서히</option><option value="slideUp">등장: 위로</option><option value="popIn">등장: 커지기</option><option value="hoverGrow">마우스: 커지기</option><option value="hoverLift">마우스: 떠오르기</option><option value="loopPulse">반복: 맥박</option></select></div>
       <div class="ps" id="row-url" style="display:none"><div class="pl" id="row-url-label">이미지 URL</div><input class="pi" id="purl" type="text"></div>
       <div class="ps" id="row-click" style="display:none">
@@ -652,13 +657,14 @@ body.authed .loggedInOnly{display:inline-flex;}
   <div id="contactDialog" style="width:min(420px,100%);background:#242424;color:var(--fg);border:1px solid var(--bd);border-radius:8px;box-shadow:0 22px 64px rgba(0,0,0,.44);padding:18px;position:relative;">
     <button id="contactClose" type="button" title="닫기" style="position:absolute;top:8px;right:8px;width:26px;height:26px;border:0;background:transparent;color:var(--fg);font-size:18px;cursor:pointer;">x</button>
     <h2 id="contactTitle" style="font-size:15px;margin-bottom:8px;">문의하기</h2>
-    <p style="font-size:12px;line-height:1.45;color:#aaa;">아래 내용으로 25-10617@kijun.hs.kr에 메일을 보낼 수 있습니다.</p>
+    <p style="font-size:12px;line-height:1.45;color:#aaa;">내용을 입력하면 메일 작성창을 열어 보낼 수 있습니다.</p>
     <label class="contactField"><span>받는 사람</span><input id="contactEmail" type="email" value="25-10617@kijun.hs.kr" readonly></label>
     <label class="contactField"><span>제목</span><input id="contactSubject" type="text" value="WebCraft 문의"></label>
     <label class="contactField"><span>내용</span><textarea id="contactBody" placeholder="문의 내용을 입력하세요."></textarea></label>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">
       <button class="hb" id="contactCancel" type="button">취소</button>
-      <button class="hb pr" id="contactSend" type="button">메일 보내기</button>
+      <button class="hb" id="contactGmail" type="button">Gmail 열기</button>
+      <button class="hb pr" id="contactSend" type="button">메일 앱 열기</button>
     </div>
   </div>
 </div>
@@ -2184,6 +2190,7 @@ body.authed .loggedInOnly{display:inline-flex;}
     e.page = Math.max(1, Math.min(9, +e.page || 1));
     e.z = isFinite(+e.z) ? +e.z : idx;
     e.groupId = +e.groupId || 0;
+    e.initialHidden = !!e.initialHidden;
     e.anim = e.anim || 'none';
     e.action2 = e.action2 || 'none';
     e.action3 = e.action3 || 'none';
@@ -2462,11 +2469,20 @@ body.authed .loggedInOnly{display:inline-flex;}
   document.getElementById('contactModal').addEventListener('mousedown', function(ev) {
     if (ev.target === this) closeContactModal();
   });
-  document.getElementById('contactSend').addEventListener('click', function() {
+  function getContactDraft() {
     var to = document.getElementById('contactEmail').value;
     var subject = document.getElementById('contactSubject').value || 'WebCraft 문의';
     var body = document.getElementById('contactBody').value || '';
-    window.location.href = 'mailto:' + encodeURIComponent(to) + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    return { to:to, subject:subject, body:body };
+  }
+  document.getElementById('contactSend').addEventListener('click', function() {
+    var draft = getContactDraft();
+    window.location.href = 'mailto:' + encodeURIComponent(draft.to) + '?subject=' + encodeURIComponent(draft.subject) + '&body=' + encodeURIComponent(draft.body);
+  });
+  document.getElementById('contactGmail').addEventListener('click', function() {
+    var draft = getContactDraft();
+    var url = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(draft.to) + '&su=' + encodeURIComponent(draft.subject) + '&body=' + encodeURIComponent(draft.body);
+    window.open(url, '_blank', 'noopener');
   });
   document.getElementById('messageInput').addEventListener('keydown', function(ev) {
     if (ev.key === 'Enter') resolveMessage(this.value);
@@ -2851,6 +2867,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   document.getElementById('purl').addEventListener('input', function() { applyProp('url'); });
   document.getElementById('pliststyle').addEventListener('change', function() { applyProp('listStyle'); });
   document.getElementById('ppage').addEventListener('input', function() { applyProp('page'); });
+  document.getElementById('pinitialhidden').addEventListener('change', function() { applyProp('initialHidden'); });
   document.getElementById('panim').addEventListener('change', function() { applyProp('anim'); });
   document.getElementById('paction').addEventListener('change', function() {
     applyProp('action');
@@ -2932,6 +2949,7 @@ body.authed .loggedInOnly{display:inline-flex;}
       page:activePage,
       z:els.length + 1,
       groupId:0,
+      initialHidden:!!d.initialHidden,
       anim:d.anim || 'none'
     };
     els.push(e);
@@ -2947,6 +2965,7 @@ body.authed .loggedInOnly{display:inline-flex;}
     if (!normalizeElement(e, els.indexOf(e))) return null;
     var dom = existing || document.createElement('div');
     dom.className = 'el';
+    dom.classList.toggle('initialHidden', !!e.initialHidden);
     dom.dataset.id = e.id;
     dom.dataset.page = e.page;
     dom.style.cssText = 'left:'+e.x+'px;top:'+e.y+'px;width:'+e.w+'px;height:'+e.h+'px;z-index:'+e.z+';min-width:'+(e.type==='divider'?'1':'30')+'px;min-height:'+(e.type==='divider'?'1':'16')+'px;';
@@ -3285,6 +3304,7 @@ body.authed .loggedInOnly{display:inline-flex;}
     document.getElementById('pshape').value = e.shape || 'rect';
     document.getElementById('pradius').value = Math.max(0, +e.radius || 0);
     document.getElementById('ppage').value = e.page || activePage;
+    document.getElementById('pinitialhidden').checked = !!e.initialHidden;
     document.getElementById('panim').value = e.anim || 'none';
     document.getElementById('paction').value = e.action || 'none';
     document.getElementById('paction2').value = e.action2 || 'none';
@@ -3371,6 +3391,7 @@ body.authed .loggedInOnly{display:inline-flex;}
       e.page=Math.max(1, Math.min(9, +g('ppage') || 1));
       activePage = e.page;
     }
+    else if (prop==='initialHidden') e.initialHidden=document.getElementById('pinitialhidden').checked;
     else if (prop==='anim') e.anim=g('panim');
     else if (prop==='ph') e.ph=g('pplc');
     else if (prop==='action') e.action=g('paction');
@@ -3705,7 +3726,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   }
 
   function wcAttr(e) {
-    return 'data-wc-id="' + e.id + '" data-wc-page="' + (e.page || 1) + '" data-wc-type="' + escHtml(e.type) + '" class="wc-el' + animClass(e) + '" ';
+    return 'data-wc-id="' + e.id + '" data-wc-page="' + (e.page || 1) + '" data-wc-type="' + escHtml(e.type) + '"' + (e.initialHidden ? ' data-wc-hidden="1"' : '') + ' class="wc-el' + animClass(e) + '" ';
   }
 
   function buildBody() {
@@ -3716,7 +3737,7 @@ body.authed .loggedInOnly{display:inline-flex;}
       var top    = px(e.y);
       var width  = px(e.w);
       var height = px(e.h);
-      var st = 'position:absolute;left:'+left+';top:'+top+';width:'+width+';height:'+height+';z-index:'+(+e.z || 1)+';' + (e.type === 'divider' ? '' : fontCss(e));
+      var st = 'position:absolute;left:'+left+';top:'+top+';width:'+width+';height:'+height+';z-index:'+(+e.z || 1)+';' + (e.initialHidden ? 'display:none;' : '') + (e.type === 'divider' ? '' : fontCss(e));
       var textColor = elementColor(e, 'col');
       var bgColor = elementColor(e, 'bg');
 
@@ -3805,13 +3826,13 @@ body.authed .loggedInOnly{display:inline-flex;}
       return "this.textContent = '" + escJS(b.msg || '완료!') + "';";
     }
     if (action === 'targetShow') {
-      return targetLine("target.style.display = target.dataset.originalDisplay || '';");
+      return targetLine("target.removeAttribute('data-wc-hidden'); target.style.display = target.dataset.originalDisplay || '';");
     }
     if (action === 'targetHide') {
       return targetLine("if (!target.dataset.originalDisplay) target.dataset.originalDisplay = target.style.display || ''; target.style.display = 'none';");
     }
     if (action === 'targetToggle') {
-      return targetLine("if (target.style.display === 'none') { target.style.display = target.dataset.originalDisplay || ''; } else { if (!target.dataset.originalDisplay) target.dataset.originalDisplay = target.style.display || ''; target.style.display = 'none'; }");
+      return targetLine("if (target.style.display === 'none') { target.removeAttribute('data-wc-hidden'); target.style.display = target.dataset.originalDisplay || ''; } else { if (!target.dataset.originalDisplay) target.dataset.originalDisplay = target.style.display || ''; target.style.display = 'none'; }");
     }
     if (action === 'targetText') {
       return targetLine("setText(target, '" + escJS(b.actionValue || '바뀐 텍스트') + "');");
@@ -4053,9 +4074,9 @@ body.authed .loggedInOnly{display:inline-flex;}
     }
     if (actionName === 'text') return buttonEl.textContent = config.msg || '완료!';
     if (!target && /^(target|copyText|swapText|appendInput|inputToTarget|formSummary|clearInput|focusInput|disableTarget|enableTarget|toggleDisabled)/.test(actionName)) return;
-    if (actionName === 'targetShow') target.style.display = target.dataset.originalDisplay || '';
+    if (actionName === 'targetShow') { target.removeAttribute('data-wc-hidden'); target.style.display = target.dataset.originalDisplay || ''; }
     else if (actionName === 'targetHide') { if (!target.dataset.originalDisplay) target.dataset.originalDisplay = target.style.display || ''; target.style.display = 'none'; }
-    else if (actionName === 'targetToggle') { if (target.style.display === 'none') target.style.display = target.dataset.originalDisplay || ''; else { if (!target.dataset.originalDisplay) target.dataset.originalDisplay = target.style.display || ''; target.style.display = 'none'; } }
+    else if (actionName === 'targetToggle') { if (target.style.display === 'none') { target.removeAttribute('data-wc-hidden'); target.style.display = target.dataset.originalDisplay || ''; } else { if (!target.dataset.originalDisplay) target.dataset.originalDisplay = target.style.display || ''; target.style.display = 'none'; } }
     else if (actionName === 'targetText') previewSetText(target, config.actionValue || '바뀐 텍스트');
     else if (actionName === 'targetImage') { if (target.tagName === 'IMG') target.src = config.actionValue || ''; else { target.style.backgroundImage = 'url("' + (config.actionValue || '') + '")'; target.style.backgroundSize = 'cover'; target.style.backgroundPosition = 'center'; target.textContent = ''; } }
     else if (actionName === 'targetBg') target.style.backgroundColor = colorWithAlpha(config.targetColor || '#E05454', config.targetColorA);
