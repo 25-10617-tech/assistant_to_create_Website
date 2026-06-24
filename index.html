@@ -85,13 +85,10 @@ body.authed .loggedInOnly{display:inline-flex;}
 .sizeChip.on{border-color:var(--ac);background:rgba(224,84,84,.15);color:#fff;}
 .canvasApplyRow{display:grid;grid-template-columns:1fr 36px;gap:6px;align-items:stretch;}
 .canvasApplyRow .pi{margin-bottom:0;}
-.zoomControls{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
-.zoomControls .pi{margin-bottom:0;min-height:34px;font-size:16px;font-weight:800;padding:0;}
 .fitIcon{width:15px;height:15px;border:2px solid currentColor;border-radius:2px;display:inline-block;position:relative;}
 .fitIcon::before,.fitIcon::after{content:"";position:absolute;background:currentColor;}
 .fitIcon::before{left:3px;right:3px;top:5px;height:2px;}
 .fitIcon::after{top:3px;bottom:3px;left:5px;width:2px;}
-#zoomLabel{margin-top:7px;text-align:center;color:#fff;background:#303030;border:1px solid var(--bd);border-radius:6px;font-size:12px;font-weight:700;padding:6px 0;}
 #hint{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#bbb;pointer-events:none;}
 #hint .hi{font-size:44px;}
 #hint p{font-size:13px;}
@@ -325,9 +322,6 @@ body.authed .loggedInOnly{display:inline-flex;}
       <button class="hudBtn" id="hudZoomOut" type="button" title="축소" aria-label="캔버스 축소">-</button>
       <button class="hudBtn" id="hudZoomIn" type="button" title="확대" aria-label="캔버스 확대">+</button>
       <button class="hudBtn" id="hudZoomFit" type="button" title="화면에 맞춤" aria-label="캔버스를 화면에 맞춤"><span class="fitIcon" aria-hidden="true"></span></button>
-      <div class="hudDivider"></div>
-      <button class="hudBtn" id="hudDesktop" type="button" title="PC 크기" aria-label="PC 캔버스 크기">PC</button>
-      <button class="hudBtn" id="hudMobile" type="button" title="모바일 크기" aria-label="모바일 캔버스 크기">M</button>
     </div>
     <div id="cvWrap"><div id="cv"><div id="hint"><div class="hi">+</div><p>왼쪽에서 요소를 추가하세요</p></div></div></div>
   </div>
@@ -558,16 +552,6 @@ body.authed .loggedInOnly{display:inline-flex;}
         <button class="pi" id="btnApplyCanvas" type="button">적용</button>
         <button class="pi" id="btnCanvasFitAfterApply" type="button" title="적용하고 화면에 맞춤" aria-label="적용하고 화면에 맞춤"><span class="fitIcon" aria-hidden="true"></span></button>
       </div>
-    </div>
-    <div class="ps">
-      <div class="pl">캔버스 보기</div>
-      <div class="zoomControls">
-        <button class="pi" id="btnZoomOut" type="button" title="축소" aria-label="축소">-</button>
-        <button class="pi" id="btnZoomIn" type="button" title="확대" aria-label="확대">+</button>
-        <button class="pi" id="btnZoomFit" type="button" title="화면에 맞춤" aria-label="화면에 맞춤"><span class="fitIcon" aria-hidden="true"></span></button>
-        <button class="pi" id="btnZoomReset" type="button">100%</button>
-      </div>
-      <div id="zoomLabel">100%</div>
     </div>
     <div class="ps">
       <div class="pl">레이어</div>
@@ -1810,8 +1794,6 @@ body.authed .loggedInOnly{display:inline-flex;}
     var hudSize = document.getElementById('hudSize');
     if (hudZoom) hudZoom.textContent = zoomText;
     if (hudSize) hudSize.textContent = sizeText;
-    var label = document.getElementById('zoomLabel');
-    if (label) label.textContent = zoomText;
   }
 
   function syncCanvasHudPosition() {
@@ -2337,15 +2319,9 @@ body.authed .loggedInOnly{display:inline-flex;}
     document.getElementById('btnApplyCanvas').click();
     fitCanvasZoom();
   });
-  document.getElementById('btnZoomOut').addEventListener('click', function() { setCanvasZoom(canvasZoom / 1.2); });
-  document.getElementById('btnZoomIn').addEventListener('click', function() { setCanvasZoom(canvasZoom * 1.2); });
-  document.getElementById('btnZoomFit').addEventListener('click', fitCanvasZoom);
-  document.getElementById('btnZoomReset').addEventListener('click', function() { setCanvasZoom(1); });
   document.getElementById('hudZoomOut').addEventListener('click', function() { setCanvasZoom(canvasZoom / 1.2); });
   document.getElementById('hudZoomIn').addEventListener('click', function() { setCanvasZoom(canvasZoom * 1.2); });
   document.getElementById('hudZoomFit').addEventListener('click', fitCanvasZoom);
-  document.getElementById('hudDesktop').addEventListener('click', function() { chooseCanvasPreset('desktop', true, true); });
-  document.getElementById('hudMobile').addEventListener('click', function() { chooseCanvasPreset('mobile', true, true); });
   document.querySelectorAll('[data-canvas-preset]').forEach(function(btn) {
     btn.addEventListener('click', function() {
       chooseCanvasPreset(this.dataset.canvasPreset, true, true);
