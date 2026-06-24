@@ -64,7 +64,7 @@ body.authed .loggedInOnly{display:inline-flex;}
 /* 캔버스 영역 */
 #cw{flex:1;background:#c8c8c8;overflow:auto;position:relative;padding:42px 30px 42vh;cursor:default;}
 #cw.panning{cursor:grabbing;}
-#cvWrap{width:max-content;height:max-content;transform-origin:top left;margin:0 auto;}
+#cvWrap{width:max-content;height:max-content;transform-origin:top left;margin:0 auto;padding:120px 180px 220px;}
 #cv{
   position:relative;
   flex:0 0 auto;
@@ -1737,9 +1737,11 @@ body.authed .loggedInOnly{display:inline-flex;}
     canvasZoom = clamp(Number(canvasZoom) || 1, 0.25, 2.2);
     var wrap = document.getElementById('cvWrap');
     if (wrap) {
+      var padX = 360;
+      var padY = 340;
       wrap.style.transform = 'scale(' + canvasZoom + ')';
-      wrap.style.width = Math.round(lastCanvasSize.w * canvasZoom) + 'px';
-      wrap.style.height = Math.round(lastCanvasSize.h * canvasZoom) + 'px';
+      wrap.style.width = Math.round((lastCanvasSize.w + padX) * canvasZoom) + 'px';
+      wrap.style.height = Math.round((lastCanvasSize.h + padY) * canvasZoom) + 'px';
     }
     var label = document.getElementById('zoomLabel');
     if (label) label.textContent = Math.round(canvasZoom * 100) + '%';
@@ -1767,7 +1769,7 @@ body.authed .loggedInOnly{display:inline-flex;}
     var next = Math.min(1, availableW / lastCanvasSize.w, availableH / lastCanvasSize.h);
     setCanvasZoom(clamp(next, 0.25, 2.2));
     cwEl.scrollLeft = Math.max(0, (cwEl.scrollWidth - cwEl.clientWidth) / 2);
-    cwEl.scrollTop = 0;
+    cwEl.scrollTop = Math.max(0, 80 * canvasZoom);
   }
 
   function setCanvasSize(newW, newH, scaleElements) {
@@ -3164,8 +3166,8 @@ body.authed .loggedInOnly{display:inline-flex;}
   document.addEventListener('mousemove', function(ev) {
     if (canvasPan) {
       var cwEl = document.getElementById('cw');
-      cwEl.scrollLeft = canvasPan.left - (ev.clientX - canvasPan.x);
-      cwEl.scrollTop = canvasPan.top - (ev.clientY - canvasPan.y);
+      cwEl.scrollLeft = canvasPan.left - (ev.clientX - canvasPan.x) * 1.15;
+      cwEl.scrollTop = canvasPan.top - (ev.clientY - canvasPan.y) * 1.15;
       return;
     }
     if (marquee) {
