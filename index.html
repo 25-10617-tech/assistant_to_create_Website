@@ -3153,6 +3153,7 @@ body.authed .loggedInOnly{display:inline-flex;}
       codev.classList.remove('on');
       if (canvasPreset === 'auto') updateCanvasFrame(false);
     } else if (v === 'preview') {
+      doPreview();
       cw.style.display    = 'none';
       lp.style.display    = 'none';
       rp.style.display    = 'none';
@@ -3164,7 +3165,6 @@ body.authed .loggedInOnly{display:inline-flex;}
       codev.classList.remove('on');
       prev.style.display  = 'flex';
       prev.classList.add('on');
-      doPreview();
     } else if (v === 'code') {
       genCode();
       cw.style.display    = 'none';
@@ -3205,6 +3205,23 @@ body.authed .loggedInOnly{display:inline-flex;}
       w: clamp(Math.round(+lastCanvasSize.w || 960), 240, 5000),
       h: clamp(Math.round(+lastCanvasSize.h || 600), 240, 8000)
     };
+  }
+
+  function syncCanvasDomToElements() {
+    cv.querySelectorAll('.el').forEach(function(dom) {
+      var id = +dom.dataset.id;
+      var e = els.find(function(item) { return item.id === id; });
+      if (!e) return;
+      var left = parseFloat(dom.style.left);
+      var top = parseFloat(dom.style.top);
+      var width = parseFloat(dom.style.width);
+      var height = parseFloat(dom.style.height);
+      if (isFinite(left)) e.x = left;
+      if (isFinite(top)) e.y = top;
+      if (isFinite(width)) e.w = width;
+      if (isFinite(height)) e.h = height;
+      if (dom.dataset.page) e.page = Math.max(1, Math.min(9, +dom.dataset.page || e.page || 1));
+    });
   }
 
   function pct(value, total) {
@@ -3484,6 +3501,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   }
 
   function genCode() {
+    syncCanvasDomToElements();
     var css = buildCSS(false);
     var js  = buildJS();
     gcode = { html:buildHTML(css,js,false), css:css, js:js };
@@ -3500,6 +3518,7 @@ body.authed .loggedInOnly{display:inline-flex;}
 
   // ── 미리보기: 캔버스 비율 그대로 iframe에 렌더 ──
   function doPreview() {
+    syncCanvasDomToElements();
     var css = buildCSS(true);
     var js  = buildJS();
     var frame = document.getElementById('pframe');
