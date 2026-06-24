@@ -71,11 +71,11 @@ body.authed .loggedInOnly{display:inline-flex;}
   background:#fff;
   box-shadow:0 2px 20px rgba(0,0,0,.2);
 }
-#canvasHud{position:absolute;top:12px;right:14px;z-index:30;display:flex;align-items:center;gap:6px;background:rgba(28,28,28,.94);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:6px;box-shadow:0 10px 30px rgba(0,0,0,.24);backdrop-filter:blur(8px);}
-.hudInfo{min-width:116px;padding:0 8px;color:#fff;font-size:11px;line-height:1.25;}
-.hudInfo strong{display:block;font-size:13px;}
-.hudBtn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:#333;border:1px solid var(--bd);border-radius:6px;color:#fff;font-size:16px;font-weight:800;cursor:pointer;}
-.hudBtn:hover,.sizeChip:hover{border-color:var(--ac);background:#3a3a3a;}
+#canvasHud{position:absolute;top:12px;right:14px;z-index:30;display:flex;align-items:center;gap:5px;background:var(--pn);border:1px solid var(--bd);border-radius:6px;padding:5px;box-shadow:0 6px 18px rgba(0,0,0,.18);}
+.hudInfo{min-width:104px;padding:0 7px;color:var(--fg2);font-size:10px;line-height:1.25;}
+.hudInfo strong{display:block;color:var(--fg);font-size:12px;}
+.hudBtn{width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:var(--p2);border:1px solid var(--bd);border-radius:5px;color:var(--fg);font-size:14px;font-weight:800;line-height:1;cursor:pointer;}
+.hudBtn:hover,.sizeChip:hover{border-color:var(--ac);background:#333;}
 .hudBtn:active,.sizeChip:active{background:var(--ac);border-color:var(--acd);}
 .hudDivider{width:1px;height:26px;background:var(--bd);margin:0 2px;}
 .canvasSizeQuick{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:7px;}
@@ -85,6 +85,10 @@ body.authed .loggedInOnly{display:inline-flex;}
 .canvasApplyRow .pi{margin-bottom:0;}
 .zoomControls{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
 .zoomControls .pi{margin-bottom:0;min-height:34px;font-size:16px;font-weight:800;padding:0;}
+.fitIcon{width:15px;height:15px;border:2px solid currentColor;border-radius:2px;display:inline-block;position:relative;}
+.fitIcon::before,.fitIcon::after{content:"";position:absolute;background:currentColor;}
+.fitIcon::before{left:3px;right:3px;top:5px;height:2px;}
+.fitIcon::after{top:3px;bottom:3px;left:5px;width:2px;}
 #zoomLabel{margin-top:7px;text-align:center;color:#fff;background:#303030;border:1px solid var(--bd);border-radius:6px;font-size:12px;font-weight:700;padding:6px 0;}
 #hint{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#bbb;pointer-events:none;}
 #hint .hi{font-size:44px;}
@@ -318,7 +322,7 @@ body.authed .loggedInOnly{display:inline-flex;}
       <div class="hudInfo"><strong id="hudZoom">100%</strong><span id="hudSize">1440 x 900</span></div>
       <button class="hudBtn" id="hudZoomOut" type="button" title="축소" aria-label="캔버스 축소">-</button>
       <button class="hudBtn" id="hudZoomIn" type="button" title="확대" aria-label="캔버스 확대">+</button>
-      <button class="hudBtn" id="hudZoomFit" type="button" title="화면에 맞춤" aria-label="캔버스를 화면에 맞춤">□</button>
+      <button class="hudBtn" id="hudZoomFit" type="button" title="화면에 맞춤" aria-label="캔버스를 화면에 맞춤"><span class="fitIcon" aria-hidden="true"></span></button>
       <div class="hudDivider"></div>
       <button class="hudBtn" id="hudDesktop" type="button" title="PC 크기" aria-label="PC 캔버스 크기">PC</button>
       <button class="hudBtn" id="hudMobile" type="button" title="모바일 크기" aria-label="모바일 캔버스 크기">M</button>
@@ -539,7 +543,7 @@ body.authed .loggedInOnly{display:inline-flex;}
       </div>
       <div class="canvasApplyRow">
         <button class="pi" id="btnApplyCanvas" type="button">적용</button>
-        <button class="pi" id="btnCanvasFitAfterApply" type="button" title="적용하고 화면에 맞춤" aria-label="적용하고 화면에 맞춤">□</button>
+        <button class="pi" id="btnCanvasFitAfterApply" type="button" title="적용하고 화면에 맞춤" aria-label="적용하고 화면에 맞춤"><span class="fitIcon" aria-hidden="true"></span></button>
       </div>
     </div>
     <div class="ps">
@@ -547,7 +551,7 @@ body.authed .loggedInOnly{display:inline-flex;}
       <div class="zoomControls">
         <button class="pi" id="btnZoomOut" type="button" title="축소" aria-label="축소">-</button>
         <button class="pi" id="btnZoomIn" type="button" title="확대" aria-label="확대">+</button>
-        <button class="pi" id="btnZoomFit" type="button" title="화면에 맞춤" aria-label="화면에 맞춤">□</button>
+        <button class="pi" id="btnZoomFit" type="button" title="화면에 맞춤" aria-label="화면에 맞춤"><span class="fitIcon" aria-hidden="true"></span></button>
         <button class="pi" id="btnZoomReset" type="button">100%</button>
       </div>
       <div id="zoomLabel">100%</div>
@@ -1780,6 +1784,13 @@ body.authed .loggedInOnly{display:inline-flex;}
     if (label) label.textContent = zoomText;
   }
 
+  function syncCanvasHudPosition() {
+    var cwEl = document.getElementById('cw');
+    var hud = document.getElementById('canvasHud');
+    if (!cwEl || !hud) return;
+    hud.style.transform = 'translate(' + cwEl.scrollLeft + 'px,' + cwEl.scrollTop + 'px)';
+  }
+
   function applyCanvasZoom() {
     canvasZoom = clamp(Number(canvasZoom) || 1, 0.25, 2.2);
     var wrap = document.getElementById('cvWrap');
@@ -1791,6 +1802,7 @@ body.authed .loggedInOnly{display:inline-flex;}
       wrap.style.height = Math.round((lastCanvasSize.h + padY) * canvasZoom) + 'px';
     }
     updateCanvasHud();
+    syncCanvasHudPosition();
   }
 
   function setCanvasZoom(nextZoom, anchorX, anchorY) {
@@ -2316,6 +2328,7 @@ body.authed .loggedInOnly{display:inline-flex;}
     ev.preventDefault();
     openProjectMenu(ev.clientX, ev.clientY);
   });
+  document.getElementById('cw').addEventListener('scroll', syncCanvasHudPosition);
   document.getElementById('cw').addEventListener('wheel', function(ev) {
     if (ev.ctrlKey || ev.altKey) {
       ev.preventDefault();
@@ -3350,6 +3363,7 @@ body.authed .loggedInOnly{display:inline-flex;}
       prev.classList.remove('on');
       codev.classList.remove('on');
       if (canvasPreset === 'auto') updateCanvasFrame(false);
+      syncCanvasHudPosition();
     } else if (v === 'preview') {
       doPreview();
       cw.style.display    = 'none';
