@@ -201,6 +201,19 @@ body.authed .loggedInOnly{display:inline-flex;}
 .canvasCustomBox.on{display:grid;}
 .canvasCustomBox .fieldMini input{margin:0;}
 #canvasChoiceActions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+#projectInfoModal{display:none;position:fixed;inset:0;z-index:94;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:20px;}
+#projectInfoModal.on{display:flex;}
+#projectInfoDialog{width:min(620px,100%);max-height:calc(100vh - 40px);overflow:auto;background:#242424;color:var(--fg);border:1px solid var(--bd);border-radius:8px;box-shadow:0 22px 64px rgba(0,0,0,.44);padding:18px;}
+#projectInfoDialog h2{font-size:16px;margin-bottom:6px;}
+#projectInfoHint{font-size:12px;line-height:1.45;color:#aaa;margin-bottom:14px;}
+.projectInfoGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.projectInfoField.full{grid-column:1 / -1;}
+.projectInfoField span{display:block;font-size:11px;color:var(--fg2);font-weight:600;margin-bottom:5px;}
+.projectInfoField input,.projectInfoField textarea,.projectInfoField select{width:100%;background:var(--p2);border:1px solid var(--bd);color:var(--fg);padding:8px 9px;border-radius:6px;font-size:13px;outline:none;}
+.projectInfoField textarea{min-height:76px;resize:vertical;line-height:1.45;}
+.projectInfoCanvas{margin-top:12px;padding-top:12px;border-top:1px solid var(--bd);}
+.projectInfoCanvas .miniRow{margin-top:8px;}
+#projectInfoActions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
 
 /* 코드뷰 */
 #codev{display:none;flex:1;flex-direction:column;background:#1a1a1a;}
@@ -310,7 +323,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   <div class="menuTitle" id="projectMenuTitle">현재: 미저장</div>
   <button class="menuBtn" id="btnNewProject" type="button">새 작품 만들기</button>
   <button class="menuBtn" id="btnServerSave" type="button">현재 작품 저장</button>
-  <button class="menuBtn" id="btnServerSaveNew" type="button">다른 이름 저장</button>
+  <button class="menuBtn" id="btnServerSaveNew" type="button">다른 이름</button>
   <div class="menuSep"></div>
   <select class="authSelect" id="projectList" title="불러올 작품 선택"></select>
   <button class="menuBtn" id="btnServerLoad" type="button">선택 작품 불러오기</button>
@@ -644,6 +657,37 @@ body.authed .loggedInOnly{display:inline-flex;}
     </div>
   </div>
 </div>
+<div id="projectInfoModal" role="dialog" aria-modal="true" aria-labelledby="projectInfoTitle">
+  <div id="projectInfoDialog">
+    <h2 id="projectInfoTitle">작품 정보</h2>
+    <p id="projectInfoHint">작품 이름, 소개, 제작자와 캔버스 크기를 정하세요.</p>
+    <div class="projectInfoGrid">
+      <label class="projectInfoField full"><span>작품 이름</span><input id="projectInfoName" type="text" maxlength="60" placeholder="예: 내 포트폴리오"></label>
+      <label class="projectInfoField"><span>제작자 이름</span><input id="projectInfoAuthor" type="text" maxlength="40" placeholder="예: 홍길동"></label>
+      <label class="projectInfoField"><span>캔버스 종류</span><select id="projectInfoCanvasPreset">
+        <option value="desktop">Desktop 1440 x 900</option>
+        <option value="laptop">Laptop 1366 x 768</option>
+        <option value="tablet">Tablet 768 x 1024</option>
+        <option value="mobile">Mobile 390 x 844</option>
+        <option value="landing">Landing 1440 x 1800</option>
+        <option value="long">Long page 1440 x 2400</option>
+        <option value="custom">직접 입력</option>
+      </select></label>
+      <label class="projectInfoField full"><span>작품 소개</span><textarea id="projectInfoDescription" maxlength="300" placeholder="작품을 간단히 설명하세요."></textarea></label>
+    </div>
+    <div class="projectInfoCanvas">
+      <div class="pl">캔버스 크기</div>
+      <div class="miniRow">
+        <label class="fieldMini"><span>너비</span><input class="pi" id="projectInfoCanvasW" type="number" min="240" max="5000"></label>
+        <label class="fieldMini"><span>높이</span><input class="pi" id="projectInfoCanvasH" type="number" min="240" max="8000"></label>
+      </div>
+    </div>
+    <div id="projectInfoActions">
+      <button class="hb" id="projectInfoCancel" type="button">취소</button>
+      <button class="hb pr" id="projectInfoSave" type="button">저장</button>
+    </div>
+  </div>
+</div>
 <div id="contactModal" role="dialog" aria-modal="true" aria-labelledby="contactTitle" style="display:none;position:fixed;inset:0;z-index:95;background:rgba(0,0,0,.48);align-items:center;justify-content:center;padding:20px;">
   <div id="contactDialog" style="width:min(420px,100%);background:#242424;color:var(--fg);border:1px solid var(--bd);border-radius:8px;box-shadow:0 22px 64px rgba(0,0,0,.44);padding:18px;position:relative;">
     <button id="contactClose" type="button" title="닫기" style="position:absolute;top:8px;right:8px;width:26px;height:26px;border:0;background:transparent;color:var(--fg);font-size:18px;cursor:pointer;">x</button>
@@ -738,9 +782,11 @@ body.authed .loggedInOnly{display:inline-flex;}
   var authSession = null;
   var activeProjectId = '';
   var activeProjectTitle = '';
+  var activeProjectMeta = { title:'', description:'', author:'' };
   var authMode = 'login';
   var messageResolver = null;
   var canvasChoiceResolver = null;
+  var projectInfoResolver = null;
   var pendingCanvasChoice = null;
   var localApiMode = location.protocol === 'file:';
   var remoteApiBase = getConfiguredApiBase();
@@ -751,6 +797,7 @@ body.authed .loggedInOnly{display:inline-flex;}
       idc: idc,
       activePage: activePage,
       groupIdc: groupIdc,
+      projectMeta: activeProjectMeta,
       canvasPreset: canvasPreset,
       customCanvasSize: customCanvasSize,
       lastCanvasSize: lastCanvasSize,
@@ -973,6 +1020,7 @@ body.authed .loggedInOnly{display:inline-flex;}
     if (!session) {
       activeProjectId = '';
       activeProjectTitle = '';
+      activeProjectMeta = { title:'', description:'', author:'' };
       var list = document.getElementById('projectList');
       if (list) list.innerHTML = '';
     }
@@ -1377,6 +1425,7 @@ body.authed .loggedInOnly{display:inline-flex;}
         list.appendChild(empty);
         activeProjectId = '';
         activeProjectTitle = '';
+        activeProjectMeta = { title:'', description:'', author:'' };
         updateProjectButtons();
         return;
       }
@@ -1495,6 +1544,98 @@ body.authed .loggedInOnly{display:inline-flex;}
       return null;
     }
     return title;
+  }
+
+  function normalizeProjectMeta(meta) {
+    meta = meta && typeof meta === 'object' ? meta : {};
+    var title = String(meta.title || activeProjectTitle || '').trim().slice(0, 60);
+    return {
+      title: title,
+      description: String(meta.description || '').trim().slice(0, 300),
+      author: String(meta.author || '').trim().slice(0, 40)
+    };
+  }
+
+  function projectInfoCanvasSizeForPreset(value) {
+    if (value === 'custom') return {
+      w: clamp(+document.getElementById('projectInfoCanvasW').value || customCanvasSize.w, 240, 5000),
+      h: clamp(+document.getElementById('projectInfoCanvasH').value || customCanvasSize.h, 240, 8000)
+    };
+    return canvasChoiceSizeForPreset(value);
+  }
+
+  function syncProjectInfoCanvasInputs() {
+    var preset = document.getElementById('projectInfoCanvasPreset').value;
+    var fixed = preset === 'custom' ? customCanvasSize : canvasChoiceSizeForPreset(preset);
+    var wInput = document.getElementById('projectInfoCanvasW');
+    var hInput = document.getElementById('projectInfoCanvasH');
+    wInput.value = Math.round(fixed.w);
+    hInput.value = Math.round(fixed.h);
+    wInput.disabled = preset !== 'custom';
+    hInput.disabled = preset !== 'custom';
+  }
+
+  function selectedProjectInfoFromModal() {
+    var title = document.getElementById('projectInfoName').value.trim();
+    if (!title) {
+      setAuthStatus('작품 이름을 입력하세요.', true);
+      document.getElementById('projectInfoName').focus();
+      return null;
+    }
+    var preset = document.getElementById('projectInfoCanvasPreset').value;
+    return {
+      meta: normalizeProjectMeta({
+        title: title,
+        description: document.getElementById('projectInfoDescription').value,
+        author: document.getElementById('projectInfoAuthor').value
+      }),
+      canvasPreset: preset,
+      canvasSize: preset === 'custom' ? projectInfoCanvasSizeForPreset('custom') : null
+    };
+  }
+
+  function closeProjectInfoModal(value) {
+    document.getElementById('projectInfoModal').classList.remove('on');
+    if (projectInfoResolver) {
+      var resolve = projectInfoResolver;
+      projectInfoResolver = null;
+      resolve(value || null);
+    }
+  }
+
+  function promptProjectInfo(mode) {
+    return new Promise(function(resolve) {
+      projectInfoResolver = resolve;
+      var isNew = mode === 'new';
+      var meta = normalizeProjectMeta(isNew ? { title:'내 작품' } : activeProjectMeta);
+      if (!meta.title) meta.title = '내 작품';
+      document.getElementById('projectInfoTitle').textContent = isNew ? '새 작품 만들기' : '작품 정보 수정';
+      document.getElementById('projectInfoHint').textContent = isNew ? '작품 정보를 입력하고 캔버스 크기를 정하면 바로 저장됩니다.' : '작품 이름, 소개, 제작자와 캔버스 크기를 수정합니다.';
+      document.getElementById('projectInfoSave').textContent = isNew ? '새 작품 저장' : '수정 저장';
+      document.getElementById('projectInfoName').value = meta.title;
+      document.getElementById('projectInfoDescription').value = meta.description;
+      document.getElementById('projectInfoAuthor').value = meta.author;
+      document.getElementById('projectInfoCanvasPreset').value = canvasPreset === 'auto' ? 'landing' : canvasPreset;
+      if (canvasPreset === 'custom') {
+        document.getElementById('projectInfoCanvasW').value = customCanvasSize.w;
+        document.getElementById('projectInfoCanvasH').value = customCanvasSize.h;
+      }
+      syncProjectInfoCanvasInputs();
+      document.getElementById('projectInfoModal').classList.add('on');
+      setTimeout(function() {
+        document.getElementById('projectInfoName').focus();
+        document.getElementById('projectInfoName').select();
+      }, 0);
+    });
+  }
+
+  function applyProjectInfo(choice, scaleElements) {
+    activeProjectMeta = normalizeProjectMeta(choice.meta);
+    activeProjectTitle = activeProjectMeta.title;
+    canvasPreset = choice.canvasPreset;
+    if (choice.canvasSize) customCanvasSize = choice.canvasSize;
+    applyCanvasPreset(!!scaleElements);
+    updateProjectButtons();
   }
 
   function canvasChoiceSizeForPreset(value) {
@@ -1625,6 +1766,7 @@ body.authed .loggedInOnly{display:inline-flex;}
     pick(null);
     activeProjectId = '';
     activeProjectTitle = '';
+    activeProjectMeta = { title:'', description:'', author:'' };
     updateProjectButtons();
     localStorage.removeItem(STORE_KEY);
     pushHistory();
@@ -1636,13 +1778,11 @@ body.authed .loggedInOnly{display:inline-flex;}
       var confirmed = await askConfirm('새 작품 만들기', '현재 작업을 닫고 새 작품을 만들까요? 저장하지 않은 내용은 사라집니다.');
       if (!confirmed) return;
     }
-    var canvasChoice = await promptCanvasSizeForNewProject();
-    if (!canvasChoice) return;
+    var projectChoice = await promptProjectInfo('new');
+    if (!projectChoice) return;
     clearCurrentProject();
-    canvasPreset = canvasChoice.preset;
-    if (canvasChoice.size) customCanvasSize = canvasChoice.size;
-    applyCanvasPreset(false);
-    setAuthStatus('새 작품을 만들었습니다.', false);
+    applyProjectInfo(projectChoice, false);
+    await saveServerProject(false);
   }
 
   async function saveServerProject(saveAsNew) {
@@ -1650,8 +1790,14 @@ body.authed .loggedInOnly{display:inline-flex;}
     if (!authSession) return setAuthStatus('로그인이 필요합니다.', true);
     var shouldCreate = saveAsNew || !activeProjectId;
     var projectId = shouldCreate ? '' : activeProjectId;
-    var title = shouldCreate ? await promptProjectTitle(saveAsNew ? '다른 이름으로 저장할 작품 이름을 입력하세요.' : '처음 저장할 작품 이름을 입력하세요.', activeProjectTitle || '내 작품') : activeProjectTitle;
-    if (title === null) return;
+    var meta = normalizeProjectMeta(activeProjectMeta);
+    if (shouldCreate && !meta.title) {
+      var projectChoice = await promptProjectInfo('new');
+      if (!projectChoice) return;
+      applyProjectInfo(projectChoice, false);
+      meta = normalizeProjectMeta(activeProjectMeta);
+    }
+    var title = meta.title;
     setAuthStatus(shouldCreate ? '새 작품 저장 중...' : '현재 작품 저장 중...', false);
     try {
       var data = await apiFetch('/api/projects', {
@@ -1664,11 +1810,21 @@ body.authed .loggedInOnly{display:inline-flex;}
       });
       activeProjectId = data.project.id;
       activeProjectTitle = data.project.title;
+      activeProjectMeta = normalizeProjectMeta(activeProjectMeta);
       setAuthStatus(shouldCreate ? '새 작품으로 저장됨' : '현재 작품 저장됨', false);
       await refreshProjects();
     } catch (err) {
       setAuthStatus(err.message, true);
     }
+  }
+
+  async function editProjectInfo() {
+    closeProjectMenu();
+    if (!authSession) return setAuthStatus('로그인이 필요합니다.', true);
+    var choice = await promptProjectInfo(activeProjectId ? 'edit' : 'new');
+    if (!choice) return;
+    applyProjectInfo(choice, true);
+    await saveServerProject(false);
   }
 
   async function loadServerProject() {
@@ -1687,6 +1843,8 @@ body.authed .loggedInOnly{display:inline-flex;}
       activeProjectId = projectId;
       activeProjectTitle = data.project.title;
       applySnapshot(data.project.data);
+      activeProjectMeta = normalizeProjectMeta((data.project.data && data.project.data.projectMeta) || { title:data.project.title });
+      activeProjectTitle = activeProjectMeta.title;
       saveDesign();
       pushHistory();
       setAuthStatus('선택 작품을 불러옴', false);
@@ -1737,6 +1895,8 @@ body.authed .loggedInOnly{display:inline-flex;}
     idc = data.idc || els.reduce(function(max, e) { return Math.max(max, e.id || 0); }, 0);
     activePage = data.activePage || 1;
     groupIdc = data.groupIdc || els.reduce(function(max, e) { return Math.max(max, e.groupId || 0); }, 0);
+    activeProjectMeta = normalizeProjectMeta(data.projectMeta || { title:activeProjectTitle });
+    activeProjectTitle = activeProjectMeta.title;
     canvasPreset = data.canvasPreset || 'auto';
     customCanvasSize = data.customCanvasSize || customCanvasSize;
     lastCanvasSize = data.lastCanvasSize || lastCanvasSize;
@@ -2271,6 +2431,17 @@ body.authed .loggedInOnly{display:inline-flex;}
       closeCanvasChoiceModal();
     }
   });
+  document.getElementById('projectInfoModal').addEventListener('mousedown', function(ev) {
+    if (ev.target === this) closeProjectInfoModal(null);
+  });
+  document.getElementById('projectInfoCancel').addEventListener('click', function() {
+    closeProjectInfoModal(null);
+  });
+  document.getElementById('projectInfoSave').addEventListener('click', function() {
+    var choice = selectedProjectInfoFromModal();
+    if (choice) closeProjectInfoModal(choice);
+  });
+  document.getElementById('projectInfoCanvasPreset').addEventListener('change', syncProjectInfoCanvasInputs);
   document.getElementById('bottomHome').addEventListener('click', function() {
     setView('design');
   });
@@ -2337,7 +2508,7 @@ body.authed .loggedInOnly{display:inline-flex;}
     ev.stopPropagation();
   });
   document.getElementById('btnNewProject').addEventListener('click', newProject);
-  document.getElementById('btnServerSaveNew').addEventListener('click', function() { saveServerProject(true); });
+  document.getElementById('btnServerSaveNew').addEventListener('click', editProjectInfo);
   document.getElementById('btnServerSave').addEventListener('click', function() { saveServerProject(false); });
   document.getElementById('btnServerLoad').addEventListener('click', loadServerProject);
   document.getElementById('btnServerDelete').addEventListener('click', deleteServerProject);
@@ -2543,8 +2714,8 @@ body.authed .loggedInOnly{display:inline-flex;}
     save: {
       title:'저장과 불러오기',
       body:'로그인 후 작품 메뉴에서 저장 기능을 사용할 수 있습니다. 현재 GitHub Pages 상태에서는 이 브라우저 안에 저장되는 로컬 저장 방식입니다.',
-      points:['현재 작품 저장: 같은 작품 이름으로 덮어쓰기','다른 이름 저장: 새 작품으로 복사 저장','선택 작품 불러오기: 저장 목록에서 고른 작품을 캔버스에 적용','선택 작품 삭제: 저장된 작품 제거'],
-      example:'예시: 디자인을 실험하기 전 다른 이름 저장으로 복사본을 만든 뒤 수정하면 원본을 남길 수 있습니다.'
+      points:['새 작품 만들기: 이름, 소개, 제작자, 캔버스 크기를 정하고 저장','현재 작품 저장: 같은 작품에 덮어쓰기','다른 이름: 작품 이름, 소개, 제작자, 캔버스 크기 수정','선택 작품 불러오기: 저장 목록에서 고른 작품을 캔버스에 적용','선택 작품 삭제: 저장된 작품 제거'],
+      example:'예시: 작품 이름이나 캔버스 크기를 바꾸려면 작품 메뉴에서 다른 이름을 누릅니다.'
     },
     login: {
       title:'로그인과 보안',
