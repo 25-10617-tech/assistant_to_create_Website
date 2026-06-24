@@ -71,9 +71,21 @@ body.authed .loggedInOnly{display:inline-flex;}
   background:#fff;
   box-shadow:0 2px 20px rgba(0,0,0,.2);
 }
-.zoomControls{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
-.zoomControls .pi{margin-bottom:0;}
-#zoomLabel{grid-column:1 / -1;text-align:center;color:var(--fg2);font-size:12px;padding:4px 0;}
+#canvasHud{position:absolute;top:12px;right:14px;z-index:30;display:flex;align-items:center;gap:6px;background:rgba(28,28,28,.94);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:6px;box-shadow:0 10px 30px rgba(0,0,0,.24);backdrop-filter:blur(8px);}
+.hudInfo{min-width:116px;padding:0 8px;color:#fff;font-size:11px;line-height:1.25;}
+.hudInfo strong{display:block;font-size:13px;}
+.hudBtn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:#333;border:1px solid var(--bd);border-radius:6px;color:#fff;font-size:16px;font-weight:800;cursor:pointer;}
+.hudBtn:hover,.sizeChip:hover{border-color:var(--ac);background:#3a3a3a;}
+.hudBtn:active,.sizeChip:active{background:var(--ac);border-color:var(--acd);}
+.hudDivider{width:1px;height:26px;background:var(--bd);margin:0 2px;}
+.canvasSizeQuick{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:7px;}
+.sizeChip{min-height:34px;background:var(--p2);border:1px solid var(--bd);border-radius:6px;color:var(--fg);font-size:11px;font-weight:700;cursor:pointer;}
+.sizeChip.on{border-color:var(--ac);background:rgba(224,84,84,.15);color:#fff;}
+.canvasApplyRow{display:grid;grid-template-columns:1fr 36px;gap:6px;align-items:stretch;}
+.canvasApplyRow .pi{margin-bottom:0;}
+.zoomControls{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+.zoomControls .pi{margin-bottom:0;min-height:34px;font-size:16px;font-weight:800;padding:0;}
+#zoomLabel{margin-top:7px;text-align:center;color:#fff;background:#303030;border:1px solid var(--bd);border-radius:6px;font-size:12px;font-weight:700;padding:6px 0;}
 #hint{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#bbb;pointer-events:none;}
 #hint .hi{font-size:44px;}
 #hint p{font-size:13px;}
@@ -301,7 +313,18 @@ body.authed .loggedInOnly{display:inline-flex;}
     <div class="eb" data-type="divider"><div class="ei">--</div>구분선</div>
   </div>
   <div class="splitter" id="splitL"></div>
-  <div id="cw"><div id="cvWrap"><div id="cv"><div id="hint"><div class="hi">+</div><p>왼쪽에서 요소를 추가하세요</p></div></div></div></div>
+  <div id="cw">
+    <div id="canvasHud" aria-label="캔버스 빠른 보기 조절">
+      <div class="hudInfo"><strong id="hudZoom">100%</strong><span id="hudSize">1440 x 900</span></div>
+      <button class="hudBtn" id="hudZoomOut" type="button" title="축소" aria-label="캔버스 축소">-</button>
+      <button class="hudBtn" id="hudZoomIn" type="button" title="확대" aria-label="캔버스 확대">+</button>
+      <button class="hudBtn" id="hudZoomFit" type="button" title="화면에 맞춤" aria-label="캔버스를 화면에 맞춤">□</button>
+      <div class="hudDivider"></div>
+      <button class="hudBtn" id="hudDesktop" type="button" title="PC 크기" aria-label="PC 캔버스 크기">PC</button>
+      <button class="hudBtn" id="hudMobile" type="button" title="모바일 크기" aria-label="모바일 캔버스 크기">M</button>
+    </div>
+    <div id="cvWrap"><div id="cv"><div id="hint"><div class="hi">+</div><p>왼쪽에서 요소를 추가하세요</p></div></div></div>
+  </div>
   <div id="prev"><div id="previewWrap"><div id="previewStage"></div></div></div>
   <div id="codev">
     <div id="ctabs">
@@ -494,6 +517,12 @@ body.authed .loggedInOnly{display:inline-flex;}
     </div>
     <div class="ps">
       <div class="pl">캔버스 크기</div>
+      <div class="canvasSizeQuick" aria-label="빠른 캔버스 크기">
+        <button class="sizeChip" data-canvas-preset="desktop" type="button" title="1440 x 900">PC</button>
+        <button class="sizeChip" data-canvas-preset="tablet" type="button" title="768 x 1024">태블릿</button>
+        <button class="sizeChip" data-canvas-preset="mobile" type="button" title="390 x 844">모바일</button>
+        <button class="sizeChip" data-canvas-preset="landing" type="button" title="1440 x 1800">긴 화면</button>
+      </div>
       <select class="pi" id="canvasPreset">
         <option value="auto">현재 화면에 맞춤</option>
         <option value="desktop">Desktop 1440 x 900</option>
@@ -508,17 +537,20 @@ body.authed .loggedInOnly{display:inline-flex;}
         <label class="fieldMini"><span>너비</span><input class="pi" id="canvasW" type="number" min="240" max="5000"></label>
         <label class="fieldMini"><span>높이</span><input class="pi" id="canvasH" type="number" min="240" max="8000"></label>
       </div>
-      <button class="pi" id="btnApplyCanvas" type="button">크기 적용</button>
+      <div class="canvasApplyRow">
+        <button class="pi" id="btnApplyCanvas" type="button">적용</button>
+        <button class="pi" id="btnCanvasFitAfterApply" type="button" title="적용하고 화면에 맞춤" aria-label="적용하고 화면에 맞춤">□</button>
+      </div>
     </div>
     <div class="ps">
       <div class="pl">캔버스 보기</div>
       <div class="zoomControls">
-        <button class="pi" id="btnZoomOut" type="button">축소</button>
-        <button class="pi" id="btnZoomIn" type="button">확대</button>
-        <button class="pi" id="btnZoomFit" type="button">맞춤</button>
+        <button class="pi" id="btnZoomOut" type="button" title="축소" aria-label="축소">-</button>
+        <button class="pi" id="btnZoomIn" type="button" title="확대" aria-label="확대">+</button>
+        <button class="pi" id="btnZoomFit" type="button" title="화면에 맞춤" aria-label="화면에 맞춤">□</button>
         <button class="pi" id="btnZoomReset" type="button">100%</button>
-        <div id="zoomLabel">100%</div>
       </div>
+      <div id="zoomLabel">100%</div>
     </div>
     <div class="ps">
       <div class="pl">레이어</div>
@@ -1731,6 +1763,21 @@ body.authed .loggedInOnly{display:inline-flex;}
     hInput.value = Math.round((fixed || lastCanvasSize).h);
     wInput.disabled = canvasPreset !== 'custom';
     hInput.disabled = canvasPreset !== 'custom';
+    document.querySelectorAll('[data-canvas-preset]').forEach(function(btn) {
+      btn.classList.toggle('on', btn.dataset.canvasPreset === canvasPreset);
+    });
+    updateCanvasHud();
+  }
+
+  function updateCanvasHud() {
+    var zoomText = Math.round(canvasZoom * 100) + '%';
+    var sizeText = Math.round(lastCanvasSize.w) + ' x ' + Math.round(lastCanvasSize.h);
+    var hudZoom = document.getElementById('hudZoom');
+    var hudSize = document.getElementById('hudSize');
+    if (hudZoom) hudZoom.textContent = zoomText;
+    if (hudSize) hudSize.textContent = sizeText;
+    var label = document.getElementById('zoomLabel');
+    if (label) label.textContent = zoomText;
   }
 
   function applyCanvasZoom() {
@@ -1743,8 +1790,7 @@ body.authed .loggedInOnly{display:inline-flex;}
       wrap.style.width = Math.round((lastCanvasSize.w + padX) * canvasZoom) + 'px';
       wrap.style.height = Math.round((lastCanvasSize.h + padY) * canvasZoom) + 'px';
     }
-    var label = document.getElementById('zoomLabel');
-    if (label) label.textContent = Math.round(canvasZoom * 100) + '%';
+    updateCanvasHud();
   }
 
   function setCanvasZoom(nextZoom, anchorX, anchorY) {
@@ -1806,6 +1852,14 @@ body.authed .loggedInOnly{display:inline-flex;}
       updateCanvasFrame(scaleElements);
     }
     saveDesign();
+  }
+
+  function chooseCanvasPreset(value, scaleElements, fitAfter) {
+    canvasPreset = value;
+    var fixed = canvasSizeForPreset();
+    if (fixed) customCanvasSize = { w: fixed.w, h: fixed.h };
+    applyCanvasPreset(scaleElements);
+    if (fitAfter) fitCanvasZoom();
   }
 
   function updateCanvasFrame(scaleElements) {
@@ -2211,10 +2265,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   document.getElementById('btnPage2').addEventListener('click', function() { setActivePage(2); });
   document.getElementById('btnPage3').addEventListener('click', function() { setActivePage(3); });
   document.getElementById('canvasPreset').addEventListener('change', function() {
-    canvasPreset = this.value;
-    var fixed = canvasSizeForPreset();
-    if (fixed) customCanvasSize = { w: fixed.w, h: fixed.h };
-    applyCanvasPreset(true);
+    chooseCanvasPreset(this.value, true, false);
   });
   document.getElementById('canvasW').addEventListener('input', function() {
     canvasPreset = 'custom';
@@ -2236,10 +2287,24 @@ body.authed .loggedInOnly{display:inline-flex;}
     }
     applyCanvasPreset(true);
   });
+  document.getElementById('btnCanvasFitAfterApply').addEventListener('click', function() {
+    document.getElementById('btnApplyCanvas').click();
+    fitCanvasZoom();
+  });
   document.getElementById('btnZoomOut').addEventListener('click', function() { setCanvasZoom(canvasZoom / 1.2); });
   document.getElementById('btnZoomIn').addEventListener('click', function() { setCanvasZoom(canvasZoom * 1.2); });
   document.getElementById('btnZoomFit').addEventListener('click', fitCanvasZoom);
   document.getElementById('btnZoomReset').addEventListener('click', function() { setCanvasZoom(1); });
+  document.getElementById('hudZoomOut').addEventListener('click', function() { setCanvasZoom(canvasZoom / 1.2); });
+  document.getElementById('hudZoomIn').addEventListener('click', function() { setCanvasZoom(canvasZoom * 1.2); });
+  document.getElementById('hudZoomFit').addEventListener('click', fitCanvasZoom);
+  document.getElementById('hudDesktop').addEventListener('click', function() { chooseCanvasPreset('desktop', true, true); });
+  document.getElementById('hudMobile').addEventListener('click', function() { chooseCanvasPreset('mobile', true, true); });
+  document.querySelectorAll('[data-canvas-preset]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      chooseCanvasPreset(this.dataset.canvasPreset, true, true);
+    });
+  });
   document.getElementById('btnLayerUp').addEventListener('click', function() { moveLayer(1); });
   document.getElementById('btnLayerDown').addEventListener('click', function() { moveLayer(-1); });
   document.getElementById('btnGroupSelected').addEventListener('click', groupSelected);
