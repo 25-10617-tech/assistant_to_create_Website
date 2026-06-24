@@ -429,12 +429,12 @@ body.authed .loggedInOnly{display:inline-flex;}
       <div class="ps" id="row-font">
         <div class="pl">폰트</div>
         <select class="pi" id="pfont">
-          <option value="system">기본</option>
-          <option value="clean">깔끔한 한글</option>
-          <option value="rounded">둥근 느낌</option>
-          <option value="serif">명조/세리프</option>
-          <option value="mono">코딩체</option>
-          <option value="hand">손글씨 느낌</option>
+          <option value="system">Segoe UI</option>
+          <option value="clean">Malgun Gothic</option>
+          <option value="rounded">Arial Rounded MT Bold</option>
+          <option value="serif">Georgia</option>
+          <option value="mono">Courier New</option>
+          <option value="hand">Segoe Print</option>
         </select>
       </div>
       <div class="ps" id="row-fs"><div class="pl" id="row-fs-label">폰트 크기(px)</div><input class="pi" id="pfs" type="number" min="1"></div>
@@ -671,8 +671,8 @@ body.authed .loggedInOnly{display:inline-flex;}
     long: { name:'긴 페이지', meta:'스크롤 많은 페이지' }
   };
   var FONT_STACKS = {
-    system: "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
-    clean: "'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',sans-serif",
+    system: "'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif",
+    clean: "'Malgun Gothic','Noto Sans KR','Apple SD Gothic Neo',sans-serif",
     rounded: "'Arial Rounded MT Bold','Malgun Gothic','Apple SD Gothic Neo',sans-serif",
     serif: "Georgia,'Times New Roman','Noto Serif KR',serif",
     mono: "'Courier New','D2Coding',monospace",
