@@ -71,10 +71,12 @@ body.authed .loggedInOnly{display:inline-flex;}
   background:#fff;
   box-shadow:0 2px 20px rgba(0,0,0,.2);
 }
-#canvasHud{position:absolute;top:12px;right:14px;z-index:30;display:flex;align-items:center;gap:5px;background:var(--pn);border:1px solid var(--bd);border-radius:6px;padding:5px;box-shadow:0 6px 18px rgba(0,0,0,.18);}
-.hudInfo{min-width:104px;padding:0 7px;color:var(--fg2);font-size:10px;line-height:1.25;}
-.hudInfo strong{display:block;color:var(--fg);font-size:12px;}
-.hudBtn{width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:var(--p2);border:1px solid var(--bd);border-radius:5px;color:var(--fg);font-size:14px;font-weight:800;line-height:1;cursor:pointer;}
+#canvasHud{position:absolute;left:14px;top:14px;z-index:30;display:flex;align-items:center;gap:5px;background:rgba(37,37,37,.88);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:4px;box-shadow:0 4px 14px rgba(0,0,0,.16);opacity:.68;transition:opacity .15s,background .15s,box-shadow .15s;}
+#canvasHud:hover,#canvasHud:focus-within{opacity:1;background:var(--pn);border-color:var(--bd);box-shadow:0 6px 18px rgba(0,0,0,.2);}
+#canvasHud:not(:hover):not(:focus-within) .hudBtn,#canvasHud:not(:hover):not(:focus-within) .hudDivider{display:none;}
+.hudInfo{min-width:96px;padding:0 7px;color:var(--fg2);font-size:10px;line-height:1.25;white-space:nowrap;}
+.hudInfo strong{display:inline;color:var(--fg);font-size:12px;margin-right:6px;}
+.hudBtn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:var(--p2);border:1px solid var(--bd);border-radius:5px;color:var(--fg);font-size:13px;font-weight:800;line-height:1;cursor:pointer;}
 .hudBtn:hover,.sizeChip:hover{border-color:var(--ac);background:#333;}
 .hudBtn:active,.sizeChip:active{background:var(--ac);border-color:var(--acd);}
 .hudDivider{width:1px;height:26px;background:var(--bd);margin:0 2px;}
@@ -1788,7 +1790,10 @@ body.authed .loggedInOnly{display:inline-flex;}
     var cwEl = document.getElementById('cw');
     var hud = document.getElementById('canvasHud');
     if (!cwEl || !hud) return;
-    hud.style.transform = 'translate(' + cwEl.scrollLeft + 'px,' + cwEl.scrollTop + 'px)';
+    var x = cwEl.scrollLeft + 14;
+    var y = cwEl.scrollTop + Math.max(14, cwEl.clientHeight - hud.offsetHeight - 14);
+    hud.style.left = x + 'px';
+    hud.style.top = y + 'px';
   }
 
   function applyCanvasZoom() {
