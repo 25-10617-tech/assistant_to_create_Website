@@ -458,7 +458,7 @@ body.authed .loggedInOnly{display:inline-flex;}
     </div>
     <div id="canvasChoiceActions">
       <button class="hb" id="canvasChoiceCancel" type="button">취소</button>
-      <button class="hb" id="canvasChoiceCustom" type="button">직접 크기 입력</button>
+      <button class="hb pr" id="canvasChoiceCreate" type="button">선택한 크기로 만들기</button>
     </div>
   </div>
 </div>
@@ -540,6 +540,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   var authMode = 'login';
   var messageResolver = null;
   var canvasChoiceResolver = null;
+  var pendingCanvasChoice = null;
   var localApiMode = location.protocol === 'file:';
   var remoteApiBase = getConfiguredApiBase();
 
@@ -1285,11 +1286,17 @@ body.authed .loggedInOnly{display:inline-flex;}
 
   function showCustomCanvasInputs() {
     var customBox = document.getElementById('canvasCustomBox');
-    var customButton = document.getElementById('canvasChoiceCustom');
     customBox.classList.add('on');
-    customButton.textContent = '이 크기로 만들기';
+    pendingCanvasChoice = { preset:'custom' };
+    updateCanvasChoiceSelection();
     document.getElementById('newCanvasW').focus();
     document.getElementById('newCanvasW').select();
+  }
+
+  function updateCanvasChoiceSelection() {
+    document.querySelectorAll('.canvasPresetCard').forEach(function(card) {
+      card.classList.toggle('on', card.dataset.preset === (pendingCanvasChoice && pendingCanvasChoice.preset));
+    });
   }
 
   function renderCanvasPresetGrid(resolve) {
@@ -1303,20 +1310,24 @@ body.authed .loggedInOnly{display:inline-flex;}
       var sheetH = Math.max(18, Math.round(size.h * scale));
       var btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'canvasPresetCard' + (value === (canvasPreset === 'custom' ? 'landing' : canvasPreset) ? ' on' : '');
+      btn.className = 'canvasPresetCard';
+      btn.dataset.preset = value;
       btn.innerHTML = '<div class="canvasPresetVisual"><div class="canvasPresetSheet"></div></div><div class="canvasPresetName"></div><div class="canvasPresetMeta"></div>';
       btn.querySelector('.canvasPresetSheet').style.width = sheetW + 'px';
       btn.querySelector('.canvasPresetSheet').style.height = sheetH + 'px';
       btn.querySelector('.canvasPresetName').textContent = label.name;
       btn.querySelector('.canvasPresetMeta').textContent = value === 'auto' ? label.meta : size.w + ' x ' + size.h + ' · ' + label.meta;
       btn.addEventListener('click', function() {
-        closeCanvasChoiceModal({ preset:value });
+        pendingCanvasChoice = { preset:value };
+        document.getElementById('canvasCustomBox').classList.remove('on');
+        updateCanvasChoiceSelection();
       });
       grid.appendChild(btn);
     });
     var custom = document.createElement('button');
     custom.type = 'button';
-    custom.className = 'canvasPresetCard' + (canvasPreset === 'custom' ? ' on' : '');
+    custom.className = 'canvasPresetCard';
+    custom.dataset.preset = 'custom';
     custom.innerHTML = '<div class="canvasPresetVisual"><div class="canvasPresetSheet custom">+</div></div><div class="canvasPresetName"></div><div class="canvasPresetMeta"></div>';
     custom.querySelector('.canvasPresetName').textContent = '직접 입력';
     custom.querySelector('.canvasPresetMeta').textContent = '원하는 너비와 높이로 만들기';
@@ -1329,6 +1340,7 @@ body.authed .loggedInOnly{display:inline-flex;}
     if (canvasChoiceResolver) {
       var resolve = canvasChoiceResolver;
       canvasChoiceResolver = null;
+      pendingCanvasChoice = null;
       resolve(value || null);
     }
   }
@@ -1340,20 +1352,23 @@ body.authed .loggedInOnly{display:inline-flex;}
       var wInput = document.getElementById('newCanvasW');
       var hInput = document.getElementById('newCanvasH');
       var customBox = document.getElementById('canvasCustomBox');
-      var customButton = document.getElementById('canvasChoiceCustom');
+      var createButton = document.getElementById('canvasChoiceCreate');
       var baseSize = canvasPreset === 'custom' ? customCanvasSize : canvasChoiceSizeForPreset(canvasPreset === 'auto' ? 'landing' : canvasPreset);
+      pendingCanvasChoice = { preset: canvasPreset === 'custom' ? 'custom' : (canvasPreset === 'auto' ? 'landing' : canvasPreset) };
       wInput.value = baseSize.w;
       hInput.value = baseSize.h;
       customBox.classList.remove('on');
-      customButton.textContent = '직접 크기 입력';
       renderCanvasPresetGrid(resolve);
+      updateCanvasChoiceSelection();
+      if (pendingCanvasChoice.preset === 'custom') customBox.classList.add('on');
       modal.classList.add('on');
       document.getElementById('canvasChoiceCancel').onclick = function() {
         closeCanvasChoiceModal(null);
       };
-      customButton.onclick = function() {
-        if (!customBox.classList.contains('on')) {
-          showCustomCanvasInputs();
+      createButton.onclick = function() {
+        if (!pendingCanvasChoice) return;
+        if (pendingCanvasChoice.preset !== 'custom') {
+          closeCanvasChoiceModal({ preset:pendingCanvasChoice.preset });
           return;
         }
         closeCanvasChoiceModal({
