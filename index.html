@@ -3525,8 +3525,8 @@ body.authed .loggedInOnly{display:inline-flex;}
     var html = buildHTML(css, js, true);
     frame.style.width = '';
     frame.style.height = '';
-    frame.removeAttribute('src');
-    frame.srcdoc = html;
+    frame.removeAttribute('srcdoc');
+    frame.src = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
   }
 
 })();
