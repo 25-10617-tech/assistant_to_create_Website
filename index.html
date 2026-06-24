@@ -609,7 +609,6 @@ body.authed .loggedInOnly{display:inline-flex;}
   var messageResolver = null;
   var canvasChoiceResolver = null;
   var pendingCanvasChoice = null;
-  var previewBlobUrl = '';
   var localApiMode = location.protocol === 'file:';
   var remoteApiBase = getConfiguredApiBase();
 
@@ -3390,7 +3389,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   }
 
   function buildPreviewScaler(w, h) {
-    return "function fitPreview() {\n  var shell = document.querySelector('.wc-preview-shell');\n  var wrap = document.querySelector('.wc-stage-wrap');\n  if (!shell || !wrap) return;\n  var pad = 48;\n  var scale = Math.min(1, (shell.clientWidth - pad) / " + w + ", (shell.clientHeight - pad) / " + h + ");\n  if (!isFinite(scale) || scale <= 0) scale = 1;\n  wrap.style.width = (" + w + " * scale) + 'px';\n  wrap.style.height = (" + h + " * scale) + 'px';\n  wrap.style.transform = 'scale(' + scale + ')';\n}\nwindow.addEventListener('resize', fitPreview);\nfitPreview();\n";
+    return "function fitPreview() {\n  var shell = document.querySelector('.wc-preview-shell');\n  var wrap = document.querySelector('.wc-stage-wrap');\n  if (!shell || !wrap) return;\n  var pad = 48;\n  var scale = Math.min(1, (shell.clientWidth - pad) / " + w + ", (shell.clientHeight - pad) / " + h + ");\n  if (!isFinite(scale) || scale <= 0) scale = 1;\n  wrap.style.width = (" + w + " * scale) + 'px';\n  wrap.style.height = (" + h + " * scale) + 'px';\n  wrap.style.transform = 'scale(' + scale + ')';\n}\nwindow.addEventListener('resize', fitPreview);\nrequestAnimationFrame(fitPreview);\nsetTimeout(fitPreview, 0);\n";
   }
 
   function buildHTML(css, js, previewMode) {
@@ -3433,17 +3432,8 @@ body.authed .loggedInOnly{display:inline-flex;}
     var html = buildHTML(css, js, true);
     frame.style.width = '';
     frame.style.height = '';
-    if (previewBlobUrl) {
-      URL.revokeObjectURL(previewBlobUrl);
-      previewBlobUrl = '';
-    }
-    if (window.Blob && window.URL && URL.createObjectURL) {
-      previewBlobUrl = URL.createObjectURL(new Blob([html], { type:'text/html;charset=utf-8' }));
-      frame.removeAttribute('srcdoc');
-      frame.src = previewBlobUrl;
-    } else {
-      frame.srcdoc = html;
-    }
+    frame.removeAttribute('src');
+    frame.srcdoc = html;
   }
 
 })();
