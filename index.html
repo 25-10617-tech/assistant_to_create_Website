@@ -226,7 +226,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   </div>
   <div class="splitter" id="splitL"></div>
   <div id="cw"><div id="cv"><div id="hint"><div class="hi">+</div><p>왼쪽에서 요소를 추가하세요</p></div></div></div>
-  <div id="prev"><iframe id="pframe"></iframe></div>
+  <div id="prev"><iframe id="pframe" sandbox="allow-scripts allow-forms"></iframe></div>
   <div id="codev">
     <div id="ctabs">
       <div class="ct on" data-tab="html">HTML</div>
@@ -481,6 +481,12 @@ body.authed .loggedInOnly{display:inline-flex;}
   marqueeEl.id = 'marquee';
   cv.appendChild(marqueeEl);
   var STORE_KEY = 'webcraft-studio-design-v1';
+  var LOCAL_AUTH_KEY = 'webcraft-local-auth-v1';
+  var LOCAL_SESSION_KEY = 'webcraft-local-session-v1';
+  var LOCAL_ATTEMPTS_KEY = 'webcraft-local-login-attempts-v1';
+  var LOCAL_PASSWORD_ITERATIONS = 120000;
+  var LOCAL_LOGIN_WINDOW_MS = 1000 * 60 * 15;
+  var LOCAL_LOGIN_MAX_ATTEMPTS = 20;
   var history = [];
   var historyIndex = -1;
   var restoringHistory = false;
@@ -489,6 +495,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   var activeProjectTitle = '';
   var authMode = 'login';
   var messageResolver = null;
+  var localApiMode = location.protocol === 'file:';
 
   function snapshot() {
     return {
@@ -725,7 +732,283 @@ body.authed .loggedInOnly{display:inline-flex;}
     updateProjectButtons();
   }
 
+  function readJsonStorage(key, fallback) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (err) {
+      return fallback;
+    }
+  }
+
+  function writeJsonStorage(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
+  }
+
+  function getLocalDb() {
+    var db = readJsonStorage(LOCAL_AUTH_KEY, { users: {} });
+    if (!db || typeof db !== 'object') db = { users: {} };
+    if (!db.users || typeof db.users !== 'object') db.users = {};
+    return db;
+  }
+
+  function saveLocalDb(db) {
+    writeJsonStorage(LOCAL_AUTH_KEY, db);
+  }
+
+  function bytesToBase64Url(bytes) {
+    var binary = '';
+    var chunk = 0x8000;
+    for (var i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  }
+
+  function base64UrlToBytes(value) {
+    var text = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
+    while (text.length % 4) text += '=';
+    var binary = atob(text);
+    var bytes = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
+  function randomBase64Url(byteLength) {
+    if (!window.crypto || !crypto.getRandomValues) {
+      throw new Error('브라우저 보안 난수 API를 사용할 수 없습니다. 최신 Chrome 또는 Edge에서 열어주세요.');
+    }
+    var bytes = new Uint8Array(byteLength);
+    crypto.getRandomValues(bytes);
+    return bytesToBase64Url(bytes);
+  }
+
+  async function localPasswordHash(password, salt, iterations) {
+    if (!window.crypto || !crypto.subtle || !window.TextEncoder) {
+      throw new Error('브라우저 보안 암호화 API를 사용할 수 없습니다. 최신 Chrome 또는 Edge에서 열어주세요.');
+    }
+    var encoder = new TextEncoder();
+    var key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(String(password)),
+      'PBKDF2',
+      false,
+      ['deriveBits']
+    );
+    var bits = await crypto.subtle.deriveBits(
+      {
+        name: 'PBKDF2',
+        salt: base64UrlToBytes(salt),
+        iterations: iterations || LOCAL_PASSWORD_ITERATIONS,
+        hash: 'SHA-256'
+      },
+      key,
+      256
+    );
+    return bytesToBase64Url(new Uint8Array(bits));
+  }
+
+  function timingSafeStringEqual(a, b) {
+    a = String(a || '');
+    b = String(b || '');
+    var max = Math.max(a.length, b.length);
+    var diff = a.length ^ b.length;
+    for (var i = 0; i < max; i++) {
+      diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+    }
+    return diff === 0;
+  }
+
+  function localSessionUsername() {
+    try {
+      var session = JSON.parse(sessionStorage.getItem(LOCAL_SESSION_KEY) || 'null');
+      return session && /^[a-z0-9_-]{3,24}$/.test(session.username) ? session.username : '';
+    } catch (err) {
+      return '';
+    }
+  }
+
+  function setLocalSession(username) {
+    if (!username) {
+      sessionStorage.removeItem(LOCAL_SESSION_KEY);
+      return;
+    }
+    sessionStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify({ username: username, issuedAt: Date.now() }));
+  }
+
+  function checkLocalRateLimit(username) {
+    var attempts = readJsonStorage(LOCAL_ATTEMPTS_KEY, {});
+    var key = username || 'unknown';
+    var now = Date.now();
+    var recent = Array.isArray(attempts[key]) ? attempts[key].filter(function(time) {
+      return now - time < LOCAL_LOGIN_WINDOW_MS;
+    }) : [];
+    recent.push(now);
+    attempts[key] = recent;
+    writeJsonStorage(LOCAL_ATTEMPTS_KEY, attempts);
+    return recent.length <= LOCAL_LOGIN_MAX_ATTEMPTS;
+  }
+
+  function localProjectId() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'local-' + Date.now().toString(36) + '-' + randomBase64Url(8);
+  }
+
+  function parseApiPath(url) {
+    try {
+      return new URL(url, 'http://webcraft.local').pathname;
+    } catch (err) {
+      return String(url || '');
+    }
+  }
+
+  function parseRequestBody(options) {
+    if (!options || !options.body) return {};
+    if (typeof options.body === 'string') {
+      try {
+        return JSON.parse(options.body);
+      } catch (err) {
+        throw new Error('잘못된 JSON 요청입니다.');
+      }
+    }
+    return options.body || {};
+  }
+
+  function findLocalUserByEmail(users, email) {
+    return Object.keys(users).some(function(username) {
+      return String(users[username].email || '').toLowerCase() === email;
+    });
+  }
+
+  async function localApiFetch(url, options) {
+    options = options || {};
+    var method = String(options.method || 'GET').toUpperCase();
+    var path = parseApiPath(url);
+
+    if (path === '/api/logout') {
+      if (method !== 'POST') throw new Error('허용되지 않은 요청 방식입니다.');
+      setLocalSession('');
+      return { loggedOut: true };
+    }
+
+    if (path === '/api/session') {
+      if (method !== 'GET') throw new Error('허용되지 않은 요청 방식입니다.');
+      var sessionUser = localSessionUsername();
+      if (!sessionUser) throw new Error('로그인이 필요합니다.');
+      return { username: sessionUser };
+    }
+
+    if (path === '/api/login') {
+      if (method !== 'POST') throw new Error('허용되지 않은 요청 방식입니다.');
+      var body = parseRequestBody(options);
+      var username = String(body.username || '').trim().toLowerCase();
+      var email = String(body.email || '').trim().toLowerCase();
+      var password = String(body.password || '');
+      var passwordConfirm = String(body.passwordConfirm || '');
+      var action = body.action === 'signup' ? 'signup' : 'login';
+
+      if (!checkLocalRateLimit(username)) {
+        throw new Error('로그인 시도가 너무 많습니다. 잠시 후 다시 시도하세요.');
+      }
+      if (!/^[a-z0-9_-]{3,24}$/.test(username)) {
+        throw new Error('아이디는 영문 소문자, 숫자, _, - 조합 3~24자로 입력하세요.');
+      }
+      if (password.length < 8) {
+        throw new Error('비밀번호는 8자 이상이어야 합니다.');
+      }
+      if (action === 'signup' && !isStrongPassword(password)) {
+        throw new Error('비밀번호는 8자 이상이며 소문자 영문, 대문자 영문, 숫자, 특수문자 중 3가지를 만족해야 합니다.');
+      }
+      if (action === 'signup' && password !== passwordConfirm) {
+        throw new Error('비밀번호가 서로 일치하지 않습니다.');
+      }
+      if (action === 'signup' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        throw new Error('사용할 수 있는 이메일 주소를 입력하세요.');
+      }
+
+      var db = getLocalDb();
+      var user = db.users[username];
+      var created = false;
+      if (!user) {
+        if (action !== 'signup') throw new Error('아이디 또는 비밀번호가 맞지 않습니다.');
+        if (findLocalUserByEmail(db.users, email)) throw new Error('이미 사용 중인 이메일입니다.');
+        var salt = randomBase64Url(16);
+        user = {
+          email: email,
+          salt: salt,
+          hash: await localPasswordHash(password, salt, LOCAL_PASSWORD_ITERATIONS),
+          iterations: LOCAL_PASSWORD_ITERATIONS,
+          projects: {},
+          createdAt: new Date().toISOString()
+        };
+        db.users[username] = user;
+        saveLocalDb(db);
+        created = true;
+      } else {
+        if (action === 'signup') throw new Error('이미 사용 중인 아이디입니다.');
+        var candidate = await localPasswordHash(password, user.salt, user.iterations || LOCAL_PASSWORD_ITERATIONS);
+        if (!timingSafeStringEqual(candidate, user.hash)) throw new Error('아이디 또는 비밀번호가 맞지 않습니다.');
+      }
+      setLocalSession(username);
+      return { username: username, created: created };
+    }
+
+    var currentUser = localSessionUsername();
+    if (!currentUser) throw new Error('로그인이 필요합니다.');
+    var projectDb = getLocalDb();
+    var current = projectDb.users[currentUser];
+    if (!current) {
+      setLocalSession('');
+      throw new Error('계정을 찾을 수 없습니다.');
+    }
+    if (!current.projects || typeof current.projects !== 'object') current.projects = {};
+
+    if (method === 'GET' && path === '/api/projects') {
+      return {
+        projects: Object.keys(current.projects).map(function(id) {
+          var project = current.projects[id];
+          return { id: project.id, title: project.title, updatedAt: project.updatedAt };
+        }).sort(function(a, b) {
+          return String(b.updatedAt).localeCompare(String(a.updatedAt));
+        })
+      };
+    }
+
+    if (method === 'POST' && path === '/api/projects') {
+      var saveBody = parseRequestBody(options);
+      var projectId = String(saveBody.projectId || localProjectId());
+      var title = String(saveBody.title || '제목 없는 작품').trim().slice(0, 60) || '제목 없는 작품';
+      var now = new Date().toISOString();
+      current.projects[projectId] = {
+        id: projectId,
+        title: title,
+        data: saveBody.data || {},
+        updatedAt: now
+      };
+      saveLocalDb(projectDb);
+      return { project: { id: projectId, title: title, updatedAt: now } };
+    }
+
+    var match = path.match(/^\/api\/projects\/([^/]+)$/);
+    if (match && method === 'GET') {
+      var project = current.projects[decodeURIComponent(match[1])];
+      if (!project) throw new Error('작품을 찾을 수 없습니다.');
+      return { project: project };
+    }
+
+    if (match && method === 'DELETE') {
+      var deleteId = decodeURIComponent(match[1]);
+      if (!current.projects[deleteId]) throw new Error('작품을 찾을 수 없습니다.');
+      delete current.projects[deleteId];
+      saveLocalDb(projectDb);
+      return { deleted: true, projectId: deleteId };
+    }
+
+    throw new Error('API를 찾을 수 없습니다.');
+  }
+
   async function apiFetch(url, options) {
+    if (localApiMode) return localApiFetch(url, options);
     options = options || {};
     options.headers = Object.assign({
       'Content-Type': 'application/json'
@@ -735,17 +1018,27 @@ body.authed .loggedInOnly{display:inline-flex;}
     try {
       res = await fetch(url, options);
     } catch (err) {
-      throw new Error('서버에 연결할 수 없습니다. 공개 서버에서는 같은 주소의 서버 API만 사용할 수 있습니다.');
+      if (location.protocol === 'file:') {
+        localApiMode = true;
+        return localApiFetch(url, options);
+      }
+      throw new Error('서버에 연결할 수 없습니다. 파일 링크로 열면 이 브라우저에만 저장되는 로컬 로그인으로 동작합니다.');
     }
     var raw = await res.text().catch(function() { return ''; });
     var data = {};
+    var looksHtml = false;
     if (raw) {
       try {
         data = JSON.parse(raw);
       } catch (err) {
-        var looksHtml = /^\s*</.test(raw) || /<html|<\/body>|<\/h1>/i.test(raw);
+        looksHtml = /^\s*</.test(raw) || /<html|<\/body>|<\/h1>/i.test(raw);
         data = looksHtml ? { error: '서버에서 올바르지 않은 응답을 보냈습니다.' } : { error: raw };
       }
+    }
+
+    if ((looksHtml || res.status === 404 || res.status === 405) && parseApiPath(url).indexOf('/api/') === 0) {
+      localApiMode = true;
+      return localApiFetch(url, options);
     }
 
     if (!res.ok) {
