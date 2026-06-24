@@ -62,13 +62,18 @@ body.authed .loggedInOnly{display:inline-flex;}
 .sep{height:1px;background:var(--bd);margin:4px 0;}
 
 /* 캔버스 영역 */
-#cw{flex:1;background:#c8c8c8;overflow:auto;position:relative;display:flex;align-items:flex-start;justify-content:center;padding:42px 30px 42vh;}
+#cw{flex:1;background:#c8c8c8;overflow:auto;position:relative;padding:42px 30px 42vh;cursor:default;}
+#cw.panning{cursor:grabbing;}
+#cvWrap{width:max-content;height:max-content;transform-origin:top left;margin:0 auto;}
 #cv{
   position:relative;
   flex:0 0 auto;
   background:#fff;
   box-shadow:0 2px 20px rgba(0,0,0,.2);
 }
+.zoomControls{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.zoomControls .pi{margin-bottom:0;}
+#zoomLabel{grid-column:1 / -1;text-align:center;color:var(--fg2);font-size:12px;padding:4px 0;}
 #hint{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#bbb;pointer-events:none;}
 #hint .hi{font-size:44px;}
 #hint p{font-size:13px;}
@@ -296,7 +301,7 @@ body.authed .loggedInOnly{display:inline-flex;}
     <div class="eb" data-type="divider"><div class="ei">--</div>구분선</div>
   </div>
   <div class="splitter" id="splitL"></div>
-  <div id="cw"><div id="cv"><div id="hint"><div class="hi">+</div><p>왼쪽에서 요소를 추가하세요</p></div></div></div>
+  <div id="cw"><div id="cvWrap"><div id="cv"><div id="hint"><div class="hi">+</div><p>왼쪽에서 요소를 추가하세요</p></div></div></div></div>
   <div id="prev"><div id="previewWrap"><div id="previewStage"></div></div></div>
   <div id="codev">
     <div id="ctabs">
@@ -506,6 +511,16 @@ body.authed .loggedInOnly{display:inline-flex;}
       <button class="pi" id="btnApplyCanvas" type="button">크기 적용</button>
     </div>
     <div class="ps">
+      <div class="pl">캔버스 보기</div>
+      <div class="zoomControls">
+        <button class="pi" id="btnZoomOut" type="button">축소</button>
+        <button class="pi" id="btnZoomIn" type="button">확대</button>
+        <button class="pi" id="btnZoomFit" type="button">맞춤</button>
+        <button class="pi" id="btnZoomReset" type="button">100%</button>
+        <div id="zoomLabel">100%</div>
+      </div>
+    </div>
+    <div class="ps">
       <div class="pl">레이어</div>
       <div class="miniRow"><button class="pi" id="btnLayerUp" type="button">위로</button><button class="pi" id="btnLayerDown" type="button">아래로</button></div>
       <div class="layerList" id="layerList"></div>
@@ -599,6 +614,8 @@ body.authed .loggedInOnly{display:inline-flex;}
   var lastCanvasSize = { w: 960, h: 600 };
   var panelDrag = null;
   var marquee = null;
+  var canvasZoom = 1;
+  var canvasPan = null;
   var activePage = 1;
   var groupIdc = 0;
   var canvasPreset = 'auto';
@@ -1716,6 +1733,43 @@ body.authed .loggedInOnly{display:inline-flex;}
     hInput.disabled = canvasPreset !== 'custom';
   }
 
+  function applyCanvasZoom() {
+    canvasZoom = clamp(Number(canvasZoom) || 1, 0.25, 2.2);
+    var wrap = document.getElementById('cvWrap');
+    if (wrap) {
+      wrap.style.transform = 'scale(' + canvasZoom + ')';
+      wrap.style.width = Math.round(lastCanvasSize.w * canvasZoom) + 'px';
+      wrap.style.height = Math.round(lastCanvasSize.h * canvasZoom) + 'px';
+    }
+    var label = document.getElementById('zoomLabel');
+    if (label) label.textContent = Math.round(canvasZoom * 100) + '%';
+  }
+
+  function setCanvasZoom(nextZoom, anchorX, anchorY) {
+    var cwEl = document.getElementById('cw');
+    var oldZoom = canvasZoom;
+    nextZoom = clamp(nextZoom, 0.25, 2.2);
+    if (Math.abs(nextZoom - oldZoom) < 0.001) return;
+    var rect = cwEl.getBoundingClientRect();
+    var localX = (anchorX == null ? rect.left + rect.width / 2 : anchorX) - rect.left + cwEl.scrollLeft;
+    var localY = (anchorY == null ? rect.top + rect.height / 2 : anchorY) - rect.top + cwEl.scrollTop;
+    var ratio = nextZoom / oldZoom;
+    canvasZoom = nextZoom;
+    applyCanvasZoom();
+    cwEl.scrollLeft = localX * ratio - ((anchorX == null ? rect.left + rect.width / 2 : anchorX) - rect.left);
+    cwEl.scrollTop = localY * ratio - ((anchorY == null ? rect.top + rect.height / 2 : anchorY) - rect.top);
+  }
+
+  function fitCanvasZoom() {
+    var cwEl = document.getElementById('cw');
+    var availableW = Math.max(120, cwEl.clientWidth - 80);
+    var availableH = Math.max(120, cwEl.clientHeight - 90);
+    var next = Math.min(1, availableW / lastCanvasSize.w, availableH / lastCanvasSize.h);
+    setCanvasZoom(clamp(next, 0.25, 2.2));
+    cwEl.scrollLeft = Math.max(0, (cwEl.scrollWidth - cwEl.clientWidth) / 2);
+    cwEl.scrollTop = 0;
+  }
+
   function setCanvasSize(newW, newH, scaleElements) {
     var oldW = lastCanvasSize.w;
     var oldH = lastCanvasSize.h;
@@ -1739,6 +1793,7 @@ body.authed .loggedInOnly{display:inline-flex;}
       }
     }
     updateCanvasControls();
+    applyCanvasZoom();
   }
 
   function applyCanvasPreset(scaleElements) {
@@ -2179,6 +2234,10 @@ body.authed .loggedInOnly{display:inline-flex;}
     }
     applyCanvasPreset(true);
   });
+  document.getElementById('btnZoomOut').addEventListener('click', function() { setCanvasZoom(canvasZoom / 1.2); });
+  document.getElementById('btnZoomIn').addEventListener('click', function() { setCanvasZoom(canvasZoom * 1.2); });
+  document.getElementById('btnZoomFit').addEventListener('click', fitCanvasZoom);
+  document.getElementById('btnZoomReset').addEventListener('click', function() { setCanvasZoom(1); });
   document.getElementById('btnLayerUp').addEventListener('click', function() { moveLayer(1); });
   document.getElementById('btnLayerDown').addEventListener('click', function() { moveLayer(-1); });
   document.getElementById('btnGroupSelected').addEventListener('click', groupSelected);
@@ -2189,6 +2248,25 @@ body.authed .loggedInOnly{display:inline-flex;}
     if (!authSession) return;
     ev.preventDefault();
     openProjectMenu(ev.clientX, ev.clientY);
+  });
+  document.getElementById('cw').addEventListener('wheel', function(ev) {
+    if (ev.ctrlKey || ev.altKey) {
+      ev.preventDefault();
+      setCanvasZoom(canvasZoom * (ev.deltaY < 0 ? 1.1 : 1 / 1.1), ev.clientX, ev.clientY);
+      return;
+    }
+    if (ev.shiftKey) {
+      ev.preventDefault();
+      this.scrollLeft += ev.deltaY;
+    }
+  }, { passive:false });
+  document.getElementById('cw').addEventListener('mousedown', function(ev) {
+    var spacePan = ev.buttons === 1 && ev.getModifierState && ev.getModifierState('Alt');
+    var emptyPan = ev.target === this || ev.target === document.getElementById('cvWrap');
+    if (ev.button !== 1 && !spacePan && !(ev.button === 0 && emptyPan)) return;
+    ev.preventDefault();
+    canvasPan = { x:ev.clientX, y:ev.clientY, left:this.scrollLeft, top:this.scrollTop };
+    this.classList.add('panning');
   });
   document.addEventListener('mousedown', function(ev) {
     var menu = document.getElementById('projectMenu');
@@ -2202,6 +2280,7 @@ body.authed .loggedInOnly{display:inline-flex;}
     if (curView === 'preview') fitInlinePreview();
   });
   updateCanvasFrame(false);
+  applyCanvasZoom();
   loadDesign();
   refreshCanvasVisibility();
   renderLayerList();
@@ -3026,8 +3105,8 @@ body.authed .loggedInOnly{display:inline-flex;}
     }
     var rect = cv.getBoundingClientRect();
     var e = els.find(function(x) { return x.id===id; });
-    dox = ev.clientX-rect.left-e.x;
-    doy = ev.clientY-rect.top-e.y;
+    dox = (ev.clientX-rect.left) / canvasZoom - e.x;
+    doy = (ev.clientY-rect.top) / canvasZoom - e.y;
     dragging = id;
     dragGroup = multiSel.map(function(sid) {
       var item = els.find(function(x) { return x.id===sid; });
@@ -3042,10 +3121,12 @@ body.authed .loggedInOnly{display:inline-flex;}
   function updateMarquee(ev) {
     if (!marquee) return;
     var rect = cv.getBoundingClientRect();
-    var x1 = clamp(marquee.startX, 0, rect.width);
-    var y1 = clamp(marquee.startY, 0, rect.height);
-    var x2 = clamp(ev.clientX - rect.left, 0, rect.width);
-    var y2 = clamp(ev.clientY - rect.top, 0, rect.height);
+    var canvasW = rect.width / canvasZoom;
+    var canvasH = rect.height / canvasZoom;
+    var x1 = clamp(marquee.startX, 0, canvasW);
+    var y1 = clamp(marquee.startY, 0, canvasH);
+    var x2 = clamp((ev.clientX - rect.left) / canvasZoom, 0, canvasW);
+    var y2 = clamp((ev.clientY - rect.top) / canvasZoom, 0, canvasH);
     var left = Math.min(x1, x2);
     var top = Math.min(y1, y2);
     var width = Math.abs(x2 - x1);
@@ -3063,8 +3144,8 @@ body.authed .loggedInOnly{display:inline-flex;}
       ev.preventDefault();
       var rect = cv.getBoundingClientRect();
       marquee = {
-        startX: ev.clientX - rect.left,
-        startY: ev.clientY - rect.top,
+        startX: (ev.clientX - rect.left) / canvasZoom,
+        startY: (ev.clientY - rect.top) / canvasZoom,
         rect: null
       };
       marqueeEl.style.display = 'none';
@@ -3081,6 +3162,12 @@ body.authed .loggedInOnly{display:inline-flex;}
   });
 
   document.addEventListener('mousemove', function(ev) {
+    if (canvasPan) {
+      var cwEl = document.getElementById('cw');
+      cwEl.scrollLeft = canvasPan.left - (ev.clientX - canvasPan.x);
+      cwEl.scrollTop = canvasPan.top - (ev.clientY - canvasPan.y);
+      return;
+    }
     if (marquee) {
       updateMarquee(ev);
       return;
@@ -3093,14 +3180,14 @@ body.authed .loggedInOnly{display:inline-flex;}
       } else {
         document.getElementById('rp').style.width = clamp(panelDrag.rpW - (ev.clientX - panelDrag.startX), 170, maxPanel) + 'px';
       }
-      updateCanvasFrame(true);
+      if (canvasPreset === 'auto') updateCanvasFrame(false);
       return;
     }
     if (dragging!==null) {
       var rect = cv.getBoundingClientRect();
       var e = els.find(function(x) { return x.id===dragging; }); if (!e) return;
-      e.x = Math.max(0, ev.clientX-rect.left-dox);
-      e.y = Math.max(0, ev.clientY-rect.top-doy);
+      e.x = Math.max(0, (ev.clientX-rect.left) / canvasZoom-dox);
+      e.y = Math.max(0, (ev.clientY-rect.top) / canvasZoom-doy);
       var dragStart = dragGroup && dragGroup.length ? dragGroup.find(function(x) { return x.id===dragging; }) : null;
       var dx = dragStart ? e.x - dragStart.x : 0;
       var dy = dragStart ? e.y - dragStart.y : 0;
@@ -3127,8 +3214,8 @@ body.authed .loggedInOnly{display:inline-flex;}
       var e = els.find(function(x) { return x.id===resizing; }); if (!e) return;
       var minW = e.type === 'divider' ? 1 : 30;
       var minH = e.type === 'divider' ? 1 : 16;
-      e.w = Math.max(minW, rsw+(ev.clientX-rsx));
-      e.h = Math.max(minH, rsh+(ev.clientY-rsy));
+      e.w = Math.max(minW, rsw+(ev.clientX-rsx) / canvasZoom);
+      e.h = Math.max(minH, rsh+(ev.clientY-rsy) / canvasZoom);
       var dom = gdom(resizing);
       if (dom) { dom.style.width=e.w+'px'; dom.style.height=e.h+'px'; }
       if (sel===resizing) {
@@ -3140,6 +3227,10 @@ body.authed .loggedInOnly{display:inline-flex;}
 
   document.addEventListener('mouseup', function() {
     var changed = dragging!==null || resizing!==null || panelDrag!==null;
+    if (canvasPan) {
+      document.getElementById('cw').classList.remove('panning');
+      canvasPan = null;
+    }
     if (marquee) {
       var r = marquee.rect;
       marqueeEl.style.display = 'none';
