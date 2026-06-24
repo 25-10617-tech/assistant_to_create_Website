@@ -1388,6 +1388,20 @@ body.authed .loggedInOnly{display:inline-flex;}
     document.getElementById('newCanvasW').select();
   }
 
+  function selectedCanvasChoiceFromModal() {
+    if (!pendingCanvasChoice) return null;
+    if (pendingCanvasChoice.preset !== 'custom') {
+      return { preset:pendingCanvasChoice.preset };
+    }
+    return {
+      preset:'custom',
+      size:{
+        w: clamp(+document.getElementById('newCanvasW').value || 1440, 240, 5000),
+        h: clamp(+document.getElementById('newCanvasH').value || 1800, 240, 8000)
+      }
+    };
+  }
+
   function updateCanvasChoiceSelection() {
     document.querySelectorAll('.canvasPresetCard').forEach(function(card) {
       card.classList.toggle('on', card.dataset.preset === (pendingCanvasChoice && pendingCanvasChoice.preset));
@@ -1417,6 +1431,10 @@ body.authed .loggedInOnly{display:inline-flex;}
         document.getElementById('canvasCustomBox').classList.remove('on');
         updateCanvasChoiceSelection();
       });
+      btn.addEventListener('dblclick', function() {
+        pendingCanvasChoice = { preset:value };
+        closeCanvasChoiceModal(selectedCanvasChoiceFromModal());
+      });
       grid.appendChild(btn);
     });
     var custom = document.createElement('button');
@@ -1427,6 +1445,10 @@ body.authed .loggedInOnly{display:inline-flex;}
     custom.querySelector('.canvasPresetName').textContent = '직접 입력';
     custom.querySelector('.canvasPresetMeta').textContent = '원하는 너비와 높이로 만들기';
     custom.addEventListener('click', showCustomCanvasInputs);
+    custom.addEventListener('dblclick', function() {
+      showCustomCanvasInputs();
+      closeCanvasChoiceModal(selectedCanvasChoiceFromModal());
+    });
     grid.appendChild(custom);
   }
 
@@ -1461,18 +1483,7 @@ body.authed .loggedInOnly{display:inline-flex;}
         closeCanvasChoiceModal(null);
       };
       createButton.onclick = function() {
-        if (!pendingCanvasChoice) return;
-        if (pendingCanvasChoice.preset !== 'custom') {
-          closeCanvasChoiceModal({ preset:pendingCanvasChoice.preset });
-          return;
-        }
-        closeCanvasChoiceModal({
-          preset:'custom',
-          size:{
-            w: clamp(+wInput.value || 1440, 240, 5000),
-            h: clamp(+hInput.value || 1800, 240, 8000)
-          }
-        });
+        closeCanvasChoiceModal(selectedCanvasChoiceFromModal());
       };
     });
   }
