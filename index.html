@@ -282,9 +282,9 @@ body.authed .loggedInOnly{display:inline-flex;}
 .bottomNav button:hover,.bottomNav a:hover{color:var(--fg);}
 .contactField{display:block;margin-top:10px;}
 .contactField span{display:block;font-size:11px;color:var(--fg2);font-weight:600;margin-bottom:5px;}
-#contactEmail,#contactSubject,#contactBody{width:100%;background:var(--p2);border:1px solid var(--bd);color:var(--fg);padding:9px;border-radius:6px;font-size:13px;outline:none;}
+#contactFrom,#contactSubject,#contactBody{width:100%;background:var(--p2);border:1px solid var(--bd);color:var(--fg);padding:9px;border-radius:6px;font-size:13px;outline:none;}
 #contactBody{min-height:110px;resize:vertical;line-height:1.45;}
-#contactEmail:focus,#contactSubject:focus,#contactBody:focus{border-color:var(--ac);}
+#contactFrom:focus,#contactSubject:focus,#contactBody:focus{border-color:var(--ac);}
 
 ::-webkit-scrollbar{width:6px;height:6px;}
 ::-webkit-scrollbar-thumb{background:#444;border-radius:3px;}
@@ -657,8 +657,9 @@ body.authed .loggedInOnly{display:inline-flex;}
   <div id="contactDialog" style="width:min(420px,100%);background:#242424;color:var(--fg);border:1px solid var(--bd);border-radius:8px;box-shadow:0 22px 64px rgba(0,0,0,.44);padding:18px;position:relative;">
     <button id="contactClose" type="button" title="닫기" style="position:absolute;top:8px;right:8px;width:26px;height:26px;border:0;background:transparent;color:var(--fg);font-size:18px;cursor:pointer;">x</button>
     <h2 id="contactTitle" style="font-size:15px;margin-bottom:8px;">문의하기</h2>
-    <p style="font-size:12px;line-height:1.45;color:#aaa;">내용을 입력하면 메일 작성창을 열어 보낼 수 있습니다.</p>
-    <label class="contactField"><span>받는 사람</span><input id="contactEmail" type="email" value="25-10617@kijun.hs.kr" readonly></label>
+    <p style="font-size:12px;line-height:1.45;color:#aaa;">내용만 남기면 바로 문의를 접수합니다.</p>
+    <input id="contactEmail" type="hidden" value="25-10617@kijun.hs.kr">
+    <label class="contactField"><span>답장 받을 이메일</span><input id="contactFrom" type="email" autocomplete="email" placeholder="you@example.com"></label>
     <label class="contactField"><span>제목</span><input id="contactSubject" type="text" value="WebCraft 문의"></label>
     <label class="contactField"><span>내용</span><textarea id="contactBody" placeholder="문의 내용을 입력하세요."></textarea></label>
     <p id="contactStatus" style="display:none;margin-top:10px;font-size:12px;line-height:1.45;color:#aaa;"></p>
@@ -666,7 +667,7 @@ body.authed .loggedInOnly{display:inline-flex;}
       <button class="hb" id="contactCancel" type="button">취소</button>
       <button class="hb" id="contactCopy" type="button">내용 복사</button>
       <button class="hb" id="contactGmail" type="button">Gmail 열기</button>
-      <button class="hb pr" id="contactSend" type="button">메일 앱 열기</button>
+      <button class="hb pr" id="contactSend" type="button">문의 보내기</button>
     </div>
   </div>
 </div>
@@ -2465,7 +2466,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   document.getElementById('bottomContact').addEventListener('click', function() {
     document.getElementById('contactModal').style.display = 'flex';
     document.getElementById('contactStatus').style.display = 'none';
-    setTimeout(function() { document.getElementById('contactSubject').focus(); }, 0);
+    setTimeout(function() { document.getElementById('contactFrom').focus(); }, 0);
   });
   document.getElementById('contactClose').addEventListener('click', closeContactModal);
   document.getElementById('contactCancel').addEventListener('click', closeContactModal);
@@ -2474,12 +2475,13 @@ body.authed .loggedInOnly{display:inline-flex;}
   });
   function getContactDraft() {
     var to = document.getElementById('contactEmail').value;
+    var from = document.getElementById('contactFrom').value.trim();
     var subject = document.getElementById('contactSubject').value || 'WebCraft 문의';
     var body = document.getElementById('contactBody').value || '';
-    return { to:to, subject:subject, body:body };
+    return { to:to, from:from, subject:subject, body:body };
   }
   function contactDraftText(draft) {
-    return '받는 사람: ' + draft.to + '\n제목: ' + draft.subject + '\n\n' + draft.body;
+    return '받는 사람: ' + draft.to + '\n답장 받을 이메일: ' + (draft.from || '미입력') + '\n제목: ' + draft.subject + '\n\n' + draft.body;
   }
   function setContactStatus(message, isError) {
     var status = document.getElementById('contactStatus');
@@ -2487,15 +2489,76 @@ body.authed .loggedInOnly{display:inline-flex;}
     status.style.color = isError ? '#ffb0b0' : '#aaa';
     status.textContent = message;
   }
-  document.getElementById('contactSend').addEventListener('click', function() {
+  function configuredContactEndpoint() {
+    return String(window.WEBCRAFT_CONTACT_ENDPOINT || '').trim();
+  }
+  async function submitContactDraft(draft) {
+    var endpoint = configuredContactEndpoint();
+    if (!endpoint) return false;
+    var fields = window.WEBCRAFT_CONTACT_FORM_FIELDS || null;
+    if (fields) {
+      var formData = new FormData();
+      var fullMessage = contactDraftText(draft);
+      if (fields.from) formData.append(fields.from, draft.from);
+      if (fields.subject) formData.append(fields.subject, draft.subject);
+      if (fields.body) formData.append(fields.body, draft.body);
+      if (fields.message) formData.append(fields.message, fullMessage);
+      await fetch(endpoint, {
+        method:'POST',
+        mode:'no-cors',
+        body:formData
+      });
+      return true;
+    }
+    var res = await fetch(endpoint, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
+      body:JSON.stringify({
+        email:draft.from,
+        replyTo:draft.from,
+        subject:draft.subject,
+        message:draft.body,
+        to:draft.to,
+        source:'WebCraft Studio'
+      })
+    });
+    if (!res.ok) throw new Error('contact failed');
+    return true;
+  }
+  function openGmailDraft(draft) {
+    var body = (draft.from ? '답장 받을 이메일: ' + draft.from + '\n\n' : '') + draft.body;
+    var url = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(draft.to) + '&su=' + encodeURIComponent(draft.subject) + '&body=' + encodeURIComponent(body);
+    return window.open(url, '_blank', 'noopener');
+  }
+  document.getElementById('contactSend').addEventListener('click', async function() {
     var draft = getContactDraft();
-    setContactStatus('메일 앱을 여는 중입니다. 아무 반응이 없으면 기본 메일 앱이 설정되지 않은 상태일 수 있어요. Gmail 열기나 내용 복사를 사용하세요.', false);
-    window.location.href = 'mailto:' + encodeURIComponent(draft.to) + '?subject=' + encodeURIComponent(draft.subject) + '&body=' + encodeURIComponent(draft.body);
+    if (!draft.body.trim()) {
+      setContactStatus('문의 내용을 입력하세요.', true);
+      document.getElementById('contactBody').focus();
+      return;
+    }
+    var btn = document.getElementById('contactSend');
+    if (!configuredContactEndpoint()) {
+      var opened = openGmailDraft(draft);
+      setContactStatus(opened ? '아직 문의 수신 URL이 설정되지 않아 Gmail 작성창을 열었습니다. 새 창에서 전송을 누르면 됩니다.' : '아직 문의 수신 URL이 설정되지 않았고 팝업도 차단됐습니다. Gmail 열기나 내용 복사를 사용하세요.', !opened);
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = '보내는 중';
+    try {
+      await submitContactDraft(draft);
+      setContactStatus('문의가 접수됐습니다.', false);
+      document.getElementById('contactBody').value = '';
+    } catch (err) {
+      setContactStatus('문의 접수에 실패했습니다. 잠시 후 다시 시도하거나 Gmail 열기를 사용하세요.', true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '문의 보내기';
+    }
   });
   document.getElementById('contactGmail').addEventListener('click', function() {
     var draft = getContactDraft();
-    var url = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(draft.to) + '&su=' + encodeURIComponent(draft.subject) + '&body=' + encodeURIComponent(draft.body);
-    var opened = window.open(url, '_blank', 'noopener');
+    var opened = openGmailDraft(draft);
     setContactStatus(opened ? 'Gmail 작성창을 열었습니다. 새 창에서 전송을 눌러야 실제 메일이 보내집니다.' : '팝업이 차단됐습니다. 브라우저 팝업 허용 후 다시 누르거나 내용 복사를 사용하세요.', !opened);
   });
   document.getElementById('contactCopy').addEventListener('click', async function() {
