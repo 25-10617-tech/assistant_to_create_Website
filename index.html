@@ -35,14 +35,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:1
 #authStatus{max-width:170px;color:var(--fg2);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 #authUser{color:var(--fg);font-size:12px;white-space:nowrap;}
 #currentProjectName{max-width:160px;color:var(--fg2);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-#projectMenu{display:none;position:fixed;z-index:80;width:230px;background:#242424;color:var(--fg);border:1px solid var(--bd);border-radius:8px;box-shadow:0 16px 44px rgba(0,0,0,.38);padding:8px;}
-#projectMenu.on{display:block;}
-#projectMenu .menuTitle{font-size:11px;color:var(--fg2);font-weight:700;margin:3px 4px 8px;}
-#projectMenu .menuBtn{width:100%;display:block;text-align:left;background:transparent;border:0;color:var(--fg);padding:8px 9px;border-radius:5px;font-size:13px;cursor:pointer;}
-#projectMenu .menuBtn:hover{background:#333;}
-#projectMenu .menuBtn:disabled{opacity:.42;cursor:not-allowed;}
-#projectMenu .menuBtn:disabled:hover{background:transparent;}
-#projectMenu .menuSep{height:1px;background:var(--bd);margin:7px 0;}
+#projectMenu,#elementMenu{display:none;position:fixed;z-index:80;background:#242424;color:var(--fg);border:1px solid var(--bd);border-radius:8px;box-shadow:0 16px 44px rgba(0,0,0,.38);padding:8px;}
+#projectMenu{width:230px;}
+#elementMenu{width:150px;}
+#projectMenu.on,#elementMenu.on{display:block;}
+#projectMenu .menuTitle,#elementMenu .menuTitle{font-size:11px;color:var(--fg2);font-weight:700;margin:3px 4px 8px;}
+#projectMenu .menuBtn,#elementMenu .menuBtn{width:100%;display:block;text-align:left;background:transparent;border:0;color:var(--fg);padding:8px 9px;border-radius:5px;font-size:13px;cursor:pointer;}
+#projectMenu .menuBtn:hover,#elementMenu .menuBtn:hover{background:#333;}
+#projectMenu .menuBtn:disabled,#elementMenu .menuBtn:disabled{opacity:.42;cursor:not-allowed;}
+#projectMenu .menuBtn:disabled:hover,#elementMenu .menuBtn:disabled:hover{background:transparent;}
+#projectMenu .menuSep,#elementMenu .menuSep{height:1px;background:var(--bd);margin:7px 0;}
 #projectMenu .authSelect{width:100%;margin-bottom:6px;}
 .loggedInOnly{display:none;}
 .authSignupOnly{display:none;}
@@ -296,6 +298,11 @@ body.authed .loggedInOnly{display:inline-flex;}
   <select class="authSelect" id="projectList" title="불러올 작품 선택"></select>
   <button class="menuBtn" id="btnServerLoad" type="button">선택 작품 불러오기</button>
   <button class="menuBtn" id="btnServerDelete" type="button">선택 작품 삭제</button>
+</div>
+<div id="elementMenu" role="menu">
+  <div class="menuTitle">레이어</div>
+  <button class="menuBtn" id="btnElementLayerUp" type="button">앞으로</button>
+  <button class="menuBtn" id="btnElementLayerDown" type="button">뒤로</button>
 </div>
 <div id="main">
   <div id="lp">
@@ -1424,13 +1431,30 @@ body.authed .loggedInOnly{display:inline-flex;}
     document.getElementById('projectMenu').classList.remove('on');
   }
 
+  function closeElementMenu() {
+    document.getElementById('elementMenu').classList.remove('on');
+  }
+
   function openProjectMenu(x, y) {
     if (!authSession) {
       setAuthStatus('로그인이 필요합니다.', true);
       return;
     }
+    closeElementMenu();
     var menu = document.getElementById('projectMenu');
     updateProjectButtons();
+    menu.classList.add('on');
+    var rect = menu.getBoundingClientRect();
+    var left = Math.min(Math.max(8, x), window.innerWidth - rect.width - 8);
+    var top = Math.min(Math.max(8, y), window.innerHeight - rect.height - 8);
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
+  }
+
+  function openElementMenu(e, x, y) {
+    closeProjectMenu();
+    pick(e.id);
+    var menu = document.getElementById('elementMenu');
     menu.classList.add('on');
     var rect = menu.getBoundingClientRect();
     var left = Math.min(Math.max(8, x), window.innerWidth - rect.width - 8);
@@ -2329,6 +2353,8 @@ body.authed .loggedInOnly{display:inline-flex;}
   });
   document.getElementById('btnLayerUp').addEventListener('click', function() { moveLayer(1); });
   document.getElementById('btnLayerDown').addEventListener('click', function() { moveLayer(-1); });
+  document.getElementById('btnElementLayerUp').addEventListener('click', function() { moveLayer(1); closeElementMenu(); });
+  document.getElementById('btnElementLayerDown').addEventListener('click', function() { moveLayer(-1); closeElementMenu(); });
   document.getElementById('btnGroupSelected').addEventListener('click', groupSelected);
   document.getElementById('btnUngroupSelected').addEventListener('click', ungroupSelected);
   document.getElementById('splitL').addEventListener('mousedown', function(ev) { startPanelResize(ev, 'left'); });
@@ -2336,6 +2362,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   document.getElementById('cw').addEventListener('contextmenu', function(ev) {
     if (!authSession) return;
     ev.preventDefault();
+    closeElementMenu();
     openProjectMenu(ev.clientX, ev.clientY);
   });
   document.getElementById('cw').addEventListener('scroll', syncCanvasHudPosition);
@@ -2360,12 +2387,17 @@ body.authed .loggedInOnly{display:inline-flex;}
   });
   document.addEventListener('mousedown', function(ev) {
     var menu = document.getElementById('projectMenu');
-    if (!menu.classList.contains('on')) return;
-    if (menu.contains(ev.target) || ev.target === document.getElementById('btnProjectMenu')) return;
-    closeProjectMenu();
+    var elementMenu = document.getElementById('elementMenu');
+    if (menu.classList.contains('on') && !menu.contains(ev.target) && ev.target !== document.getElementById('btnProjectMenu')) {
+      closeProjectMenu();
+    }
+    if (elementMenu.classList.contains('on') && !elementMenu.contains(ev.target)) {
+      closeElementMenu();
+    }
   });
   window.addEventListener('resize', function() {
     closeProjectMenu();
+    closeElementMenu();
     if (curView === 'design') updateCanvasFrame(true);
     if (curView === 'preview') fitInlinePreview();
   });
@@ -2835,6 +2867,11 @@ body.authed .loggedInOnly{display:inline-flex;}
     })(e.id));
     dom.appendChild(db);
     dom.addEventListener('mousedown', onMD);
+    dom.addEventListener('contextmenu', function(ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      openElementMenu(e, ev.clientX, ev.clientY);
+    });
     if (!existing) cv.appendChild(dom);
     refreshCanvasVisibility();
     return dom;
