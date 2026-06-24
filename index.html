@@ -157,7 +157,8 @@ body.authed .loggedInOnly{display:inline-flex;}
 .canvasPresetSheet{background:#f7f7f7;border:1px solid #ddd;box-shadow:0 4px 14px rgba(0,0,0,.28);}
 .canvasPresetName{font-size:13px;font-weight:700;color:#fff;}
 .canvasPresetMeta{font-size:11px;color:var(--fg2);line-height:1.35;}
-.canvasCustomBox{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--bd);}
+.canvasCustomBox{display:none;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--bd);}
+.canvasCustomBox.on{display:grid;}
 .canvasCustomBox .fieldMini input{margin:0;}
 #canvasChoiceActions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
 
@@ -450,13 +451,13 @@ body.authed .loggedInOnly{display:inline-flex;}
     <h2 id="canvasChoiceTitle">새 작품 캔버스</h2>
     <p id="canvasChoiceHint">만들 사이트에 가까운 화면 크기를 선택하세요.</p>
     <div class="canvasPresetGrid" id="canvasPresetGrid"></div>
-    <div class="canvasCustomBox">
+    <div class="canvasCustomBox" id="canvasCustomBox">
       <label class="fieldMini"><span>직접 입력 너비</span><input class="pi" id="newCanvasW" type="number" min="240" max="5000" value="1440"></label>
       <label class="fieldMini"><span>직접 입력 높이</span><input class="pi" id="newCanvasH" type="number" min="240" max="8000" value="1800"></label>
     </div>
     <div id="canvasChoiceActions">
       <button class="hb" id="canvasChoiceCancel" type="button">취소</button>
-      <button class="hb" id="canvasChoiceCustom" type="button">직접 입력으로 만들기</button>
+      <button class="hb" id="canvasChoiceCustom" type="button">직접 크기 입력</button>
     </div>
   </div>
 </div>
@@ -1320,15 +1321,26 @@ body.authed .loggedInOnly{display:inline-flex;}
       var modal = document.getElementById('canvasChoiceModal');
       var wInput = document.getElementById('newCanvasW');
       var hInput = document.getElementById('newCanvasH');
+      var customBox = document.getElementById('canvasCustomBox');
+      var customButton = document.getElementById('canvasChoiceCustom');
       var baseSize = canvasPreset === 'custom' ? customCanvasSize : canvasChoiceSizeForPreset(canvasPreset === 'auto' ? 'landing' : canvasPreset);
       wInput.value = baseSize.w;
       hInput.value = baseSize.h;
+      customBox.classList.remove('on');
+      customButton.textContent = '직접 크기 입력';
       renderCanvasPresetGrid(resolve);
       modal.classList.add('on');
       document.getElementById('canvasChoiceCancel').onclick = function() {
         closeCanvasChoiceModal(null);
       };
-      document.getElementById('canvasChoiceCustom').onclick = function() {
+      customButton.onclick = function() {
+        if (!customBox.classList.contains('on')) {
+          customBox.classList.add('on');
+          customButton.textContent = '이 크기로 만들기';
+          wInput.focus();
+          wInput.select();
+          return;
+        }
         closeCanvasChoiceModal({
           preset:'custom',
           size:{
