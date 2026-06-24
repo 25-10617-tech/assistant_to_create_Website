@@ -175,9 +175,24 @@ body.authed .loggedInOnly{display:inline-flex;}
 #copybtn{position:sticky;top:12px;left:calc(100% - 56px);z-index:5;background:var(--p2);border:1px solid var(--bd);color:var(--fg);padding:4px 11px;border-radius:4px;font-size:12px;cursor:pointer;}
 
 /* 미리보기 */
-#prev{display:none;flex:1;}
+#prev{display:none;flex:1;min-width:0;min-height:0;}
 #prev.on{display:flex;}
 #prev iframe{flex:1;border:none;background:#fff;}
+#helpPage{display:none;flex:1;background:#f5f5f5;overflow:auto;color:#222;}
+#helpPage.on{display:block;}
+.helpPageInner{max-width:980px;margin:0 auto;padding:30px 24px 70px;}
+.helpPageInner h1{font-size:24px;margin-bottom:8px;color:#151515;}
+.helpLead{font-size:14px;line-height:1.6;color:#555;margin-bottom:22px;}
+.helpSection{padding:20px 0;border-top:1px solid #d8d8d8;}
+.helpSection h2{font-size:17px;margin-bottom:10px;color:#202020;}
+.helpGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;}
+.helpItem{background:#fff;border:1px solid #ddd;border-radius:7px;padding:14px;min-height:118px;}
+.helpItem h3{font-size:14px;margin-bottom:7px;color:#222;}
+.helpItem p,.helpItem li{font-size:12px;line-height:1.55;color:#555;}
+.helpItem ul{padding-left:18px;margin-top:6px;}
+.helpSteps{display:grid;gap:8px;counter-reset:helpstep;}
+.helpStep{position:relative;background:#fff;border:1px solid #ddd;border-radius:7px;padding:12px 14px 12px 42px;font-size:13px;line-height:1.5;color:#444;}
+.helpStep::before{counter-increment:helpstep;content:counter(helpstep);position:absolute;left:13px;top:12px;width:20px;height:20px;border-radius:50%;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
 .bottomNav{height:42px;background:var(--pn);border-top:1px solid var(--bd);display:flex;align-items:center;justify-content:center;gap:22px;flex-shrink:0;color:var(--fg2);font-size:12px;}
 .bottomNav button,.bottomNav a{background:transparent;border:0;color:var(--fg2);font-size:12px;cursor:pointer;text-decoration:none;}
 .bottomNav button:hover,.bottomNav a:hover{color:var(--fg);}
@@ -253,6 +268,49 @@ body.authed .loggedInOnly{display:inline-flex;}
     <div id="ccontent">
       <button id="copybtn">복사</button>
       <pre id="cpre"></pre>
+    </div>
+  </div>
+  <div id="helpPage">
+    <div class="helpPageInner">
+      <h1>WebCraft Studio 도움말</h1>
+      <p class="helpLead">왼쪽에서 요소를 추가하고, 가운데 캔버스에서 배치한 뒤, 오른쪽 속성 패널에서 내용과 스타일을 조정합니다.</p>
+      <section class="helpSection">
+        <h2>기본 흐름</h2>
+        <div class="helpSteps">
+          <div class="helpStep">왼쪽 요소 목록에서 텍스트, 이미지, 버튼, 카드 같은 요소를 눌러 캔버스에 추가합니다.</div>
+          <div class="helpStep">캔버스에서 요소를 드래그해 위치를 옮기고, 오른쪽 아래 조절점으로 크기를 바꿉니다.</div>
+          <div class="helpStep">오른쪽 속성 패널에서 텍스트, 색상, 모양, 클릭 동작, 화면 번호를 편집합니다.</div>
+          <div class="helpStep">미리보기에서 버튼 동작과 화면 전환을 확인하고, 코드 생성에서 HTML/CSS/JavaScript를 복사합니다.</div>
+        </div>
+      </section>
+      <section class="helpSection">
+        <h2>작품과 캔버스</h2>
+        <div class="helpGrid">
+          <div class="helpItem"><h3>새 작품 만들기</h3><p>작품 메뉴에서 새 작품 만들기를 누르면 캔버스 크기 선택 창이 열립니다. 카드를 고른 뒤 선택한 크기로 만들기를 눌러 시작합니다.</p></div>
+          <div class="helpItem"><h3>캔버스 크기</h3><p>랜딩 페이지, 데스크톱, 노트북, 모바일, 태블릿, 긴 페이지 중에서 고릅니다. 직접 입력 카드는 원하는 너비와 높이를 숫자로 정할 때 사용합니다.</p></div>
+          <div class="helpItem"><h3>저장과 불러오기</h3><p>로그인 후 작품 메뉴에서 현재 작품 저장, 다른 이름 저장, 선택 작품 불러오기, 선택 작품 삭제를 사용할 수 있습니다.</p></div>
+          <div class="helpItem"><h3>로그인 방식</h3><p>현재 GitHub Pages에서는 브라우저 안에 저장되는 로컬 로그인으로 동작합니다. 같은 브라우저에서는 작품을 다시 불러올 수 있지만, 브라우저 데이터를 지우면 사라질 수 있습니다.</p></div>
+        </div>
+      </section>
+      <section class="helpSection">
+        <h2>요소 사용법</h2>
+        <div class="helpGrid">
+          <div class="helpItem"><h3>텍스트와 제목</h3><p>문구, 크기, 색상, 배경색을 조정합니다. 제목은 섹션 이름이나 큰 문장에 적합합니다.</p></div>
+          <div class="helpItem"><h3>이미지와 아이콘</h3><p>이미지는 URL을 넣어 표시합니다. 아이콘은 장바구니, 별, 전화, 메일 같은 종류를 고르거나 직접 문자를 입력할 수 있습니다.</p></div>
+          <div class="helpItem"><h3>버튼</h3><p>클릭 동작에서 메시지, 링크 이동, 색상 변경, 요소 보이기/숨기기, 텍스트 변경, 입력값 반영, 화면 이동 등을 설정합니다.</p></div>
+          <div class="helpItem"><h3>입력 요소</h3><p>입력창, 드롭다운, 체크박스, 라디오는 미리보기에서 값을 입력하거나 선택할 수 있고, 버튼 동작의 조건이나 값 복사에 사용할 수 있습니다.</p></div>
+          <div class="helpItem"><h3>목록과 네비게이션</h3><p>쉼표 또는 줄바꿈으로 항목을 나눕니다. 네비게이션은 첫 번째 항목이 브랜드명, 나머지가 메뉴로 표시됩니다.</p></div>
+          <div class="helpItem"><h3>카드와 구분선</h3><p>카드는 묶음 정보나 강조 영역에 쓰고, 구분선은 섹션 사이를 나눌 때 사용합니다. 모양과 둥글기를 조정할 수 있습니다.</p></div>
+        </div>
+      </section>
+      <section class="helpSection">
+        <h2>편집 팁</h2>
+        <div class="helpGrid">
+          <div class="helpItem"><h3>여러 화면</h3><p>요소의 화면 번호를 1, 2, 3으로 바꾸면 화면별로 다른 요소를 배치할 수 있습니다. 버튼 동작의 다른 화면 보여주기와 함께 사용합니다.</p></div>
+          <div class="helpItem"><h3>레이어</h3><p>오른쪽 레이어 목록에서 요소를 고르고, 위로/아래로 버튼으로 겹치는 순서를 바꿉니다.</p></div>
+          <div class="helpItem"><h3>작은 도움말</h3><p>오른쪽 위 ? 버튼은 현재 선택한 요소에 맞는 짧은 설명을 보여줍니다. 요소를 선택하지 않으면 전체 사용 요약을 보여줍니다.</p></div>
+        </div>
+      </section>
     </div>
   </div>
   <div class="splitter" id="splitR"></div>
@@ -412,6 +470,7 @@ body.authed .loggedInOnly{display:inline-flex;}
 <nav class="bottomNav" aria-label="하단 메뉴">
   <button id="bottomHome" type="button">홈</button>
   <button id="bottomProjects" type="button">작품</button>
+  <button id="bottomHelp" type="button">도움말</button>
   <button id="bottomContact" type="button">문의하기</button>
 </nav>
 <div id="helpPop" role="dialog" aria-modal="false" aria-labelledby="helpTitle">
@@ -1973,6 +2032,10 @@ body.authed .loggedInOnly{display:inline-flex;}
     var rect = ev.currentTarget.getBoundingClientRect();
     openProjectMenu(rect.left, rect.top);
   });
+  document.getElementById('bottomHelp').addEventListener('click', function() {
+    closeProjectMenu();
+    setView('help');
+  });
   document.getElementById('bottomContact').addEventListener('click', function() {
     document.getElementById('contactModal').style.display = 'flex';
     setTimeout(function() { document.getElementById('contactSubject').focus(); }, 0);
@@ -2468,7 +2531,19 @@ body.authed .loggedInOnly{display:inline-flex;}
       },
       input: {
         title: '입력창 도움말',
-        body: common + '<ul><li>플레이스홀더는 입력 전 보이는 안내 문구입니다.</li><li>크기를 넓히면 이메일, 이름, 검색창처럼 쓸 수 있습니다.</li><li>실제 저장이나 전송 기능은 생성된 코드에 별도 JavaScript를 추가해야 합니다.</li></ul>'
+        body: common + '<ul><li>플레이스홀더는 입력 전 보이는 안내 문구입니다.</li><li>크기를 넓히면 이메일, 이름, 검색창처럼 쓸 수 있습니다.</li><li>버튼 동작에서 입력값을 대상에 반영하거나 입력값을 모아 표시할 수 있습니다.</li></ul>'
+      },
+      select: {
+        title: '드롭다운 도움말',
+        body: common + '<ul><li>항목 칸에 쉼표 또는 줄바꿈으로 선택지를 입력합니다.</li><li>미리보기에서 사용자가 한 가지 값을 고를 수 있습니다.</li><li>버튼 조건에서 값이 비어있지 않음, 값이 같음 같은 조건과 함께 쓸 수 있습니다.</li></ul>'
+      },
+      checkbox: {
+        title: '체크박스 도움말',
+        body: common + '<ul><li>동의, 선택, 완료 여부처럼 켜고 끄는 값에 사용합니다.</li><li>버튼 조건에서 체크됨 또는 체크 안 됨을 선택하면 상태에 따라 동작을 실행할 수 있습니다.</li><li>텍스트 칸은 체크박스 옆에 보이는 라벨입니다.</li></ul>'
+      },
+      radio: {
+        title: '라디오 도움말',
+        body: common + '<ul><li>여러 선택지 중 하나를 고르는 UI를 만들 때 사용합니다.</li><li>텍스트 칸은 라디오 옆에 보이는 라벨입니다.</li><li>버튼 조건에서 체크됨 또는 체크 안 됨과 함께 사용할 수 있습니다.</li></ul>'
       },
       icon: {
         title: '아이콘 도움말',
@@ -2497,7 +2572,7 @@ body.authed .loggedInOnly{display:inline-flex;}
     };
     return map[type] || {
       title: '사용 도움말',
-      body: '<p>왼쪽에서 요소를 누르면 캔버스에 추가됩니다. 추가한 요소를 선택한 뒤 오른쪽에서 텍스트, 색상, 위치, 크기를 조정하세요.</p><ul><li>요소는 드래그해서 이동하고, 오른쪽 아래 조절점으로 크기를 바꿉니다.</li><li>목록과 네비게이션 바는 쉼표 또는 줄바꿈으로 항목을 나눕니다.</li><li>버튼 동작은 미리보기나 생성 코드에서 확인합니다.</li></ul><p>완성 후 코드 생성을 누르면 HTML, CSS, JavaScript 탭에서 결과를 확인하고 복사할 수 있습니다.</p>'
+      body: '<p>왼쪽에서 요소를 누르면 캔버스에 추가됩니다. 추가한 요소를 선택한 뒤 오른쪽에서 텍스트, 색상, 위치, 크기를 조정하세요.</p><ul><li>작품 메뉴의 새 작품 만들기에서 캔버스 크기 카드를 선택하고 선택한 크기로 만들기를 누릅니다.</li><li>요소는 드래그해서 이동하고, 오른쪽 아래 조절점으로 크기를 바꿉니다.</li><li>목록, 네비게이션, 드롭다운은 쉼표 또는 줄바꿈으로 항목을 나눕니다.</li><li>버튼 동작과 화면 전환은 미리보기나 생성 코드에서 확인합니다.</li><li>하단 도움말에서는 전체 사용법을 더 자세히 볼 수 있습니다.</li></ul><p>완성 후 코드 생성을 누르면 HTML, CSS, JavaScript 탭에서 결과를 확인하고 복사할 수 있습니다.</p>'
     };
   }
 
@@ -2871,6 +2946,7 @@ body.authed .loggedInOnly{display:inline-flex;}
     var rp    = document.getElementById('rp');
     var codev = document.getElementById('codev');
     var prev  = document.getElementById('prev');
+    var helpPage = document.getElementById('helpPage');
     var splitL = document.getElementById('splitL');
     var splitR = document.getElementById('splitR');
 
@@ -2882,21 +2958,25 @@ body.authed .loggedInOnly{display:inline-flex;}
       splitL.style.display = 'block';
       splitR.style.display = 'block';
       codev.style.display = 'none';
+      helpPage.style.display = 'none';
+      helpPage.classList.remove('on');
       prev.style.display  = 'none';
       prev.classList.remove('on');
       codev.classList.remove('on');
       updateCanvasFrame(true);
     } else if (v === 'preview') {
-      doPreview();
       cw.style.display    = 'none';
       lp.style.display    = 'none';
       rp.style.display    = 'none';
       splitL.style.display = 'none';
       splitR.style.display = 'none';
       codev.style.display = 'none';
+      helpPage.style.display = 'none';
+      helpPage.classList.remove('on');
       codev.classList.remove('on');
       prev.style.display  = 'flex';
       prev.classList.add('on');
+      doPreview();
     } else if (v === 'code') {
       genCode();
       cw.style.display    = 'none';
@@ -2906,8 +2986,22 @@ body.authed .loggedInOnly{display:inline-flex;}
       splitR.style.display = 'none';
       prev.style.display  = 'none';
       prev.classList.remove('on');
+      helpPage.style.display = 'none';
+      helpPage.classList.remove('on');
       codev.style.display = 'flex';
       codev.classList.add('on');
+    } else if (v === 'help') {
+      cw.style.display    = 'none';
+      lp.style.display    = 'none';
+      rp.style.display    = 'none';
+      splitL.style.display = 'none';
+      splitR.style.display = 'none';
+      prev.style.display  = 'none';
+      prev.classList.remove('on');
+      codev.style.display = 'none';
+      codev.classList.remove('on');
+      helpPage.style.display = 'block';
+      helpPage.classList.add('on');
     }
   }
 
@@ -2917,17 +3011,12 @@ body.authed .loggedInOnly{display:inline-flex;}
   }
 
   function getCanvasSize() {
-    var cvRect = cv.getBoundingClientRect();
-    var cwEl = document.getElementById('cw');
-    var cwRect = cwEl ? cwEl.getBoundingClientRect() : { width: 0, height: 0 };
-    var w = cvRect.width || cwRect.width || lastCanvasSize.w || 960;
-    var h = cvRect.height || cwRect.height || lastCanvasSize.h || 600;
-
-    if (isFinite(w) && w > 0 && isFinite(h) && h > 0) {
-      lastCanvasSize = { w: w, h: h };
-    }
-
-    return lastCanvasSize;
+    var fixed = canvasSizeForPreset();
+    if (fixed) return { w: fixed.w, h: fixed.h };
+    return {
+      w: clamp(Math.round(+lastCanvasSize.w || 960), 240, 5000),
+      h: clamp(Math.round(+lastCanvasSize.h || 600), 240, 8000)
+    };
   }
 
   function pct(value, total) {
@@ -3022,7 +3111,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   }
 
   function buildCSS() {
-    return '* { box-sizing: border-box; margin: 0; padding: 0; }\nbody { font-family: -apple-system, sans-serif; transition: background .2s, color .2s; }\nbody.dark-mode { background: #151515; color: #ffffff; }\nbutton { cursor: pointer; transition: transform .18s, opacity .18s; }\nbutton:hover { opacity: .85; }\n.wc-page-hidden { display: none !important; }\n[data-wc-id] { transition: transform .22s, opacity .22s, background-color .22s, color .22s, border-color .22s, box-shadow .22s; }\n.wc-pulse { animation: wc-pulse .42s ease; }\n.wc-shake { animation: wc-shake .42s ease; }\n.wc-fade { animation: wc-fade .55s ease; }\n.wc-fadeIn { animation: wc-fade-in .45s ease both; }\n.wc-slideUp { animation: wc-slide-up .45s ease both; }\n.wc-popIn { animation: wc-pop-in .38s ease both; }\n.wc-hoverGrow:hover { transform: scale(1.06); }\n.wc-hoverLift:hover { transform: translateY(-6px); box-shadow: 0 10px 24px rgba(0,0,0,.16); }\n.wc-loopPulse { animation: wc-pulse 1.4s ease infinite; }\n@keyframes wc-pulse { 50% { transform: scale(1.12); } }\n@keyframes wc-shake { 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(5px); } }\n@keyframes wc-fade { 50% { opacity: .22; } }\n@keyframes wc-fade-in { from { opacity: 0; } to { opacity: 1; } }\n@keyframes wc-slide-up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }\n@keyframes wc-pop-in { from { opacity: 0; transform: scale(.86); } to { opacity: 1; transform: scale(1); } }';
+    return '* { box-sizing: border-box; margin: 0; padding: 0; }\nhtml, body { min-height: 100%; }\nbody { font-family: -apple-system, sans-serif; transition: background .2s, color .2s; }\nbody.dark-mode { background: #151515; color: #ffffff; }\nbutton { cursor: pointer; transition: transform .18s, opacity .18s; }\nbutton:hover { opacity: .85; }\n.wc-preview-shell { width: 100%; min-height: 100vh; overflow: auto; background: #d7d7d7; padding: 24px; }\n.wc-stage { position: relative; margin: 0 auto; background: #fff; box-shadow: 0 2px 20px rgba(0,0,0,.18); overflow: hidden; }\n.wc-page-hidden { display: none !important; }\n[data-wc-id] { transition: transform .22s, opacity .22s, background-color .22s, color .22s, border-color .22s, box-shadow .22s; }\n.wc-pulse { animation: wc-pulse .42s ease; }\n.wc-shake { animation: wc-shake .42s ease; }\n.wc-fade { animation: wc-fade .55s ease; }\n.wc-fadeIn { animation: wc-fade-in .45s ease both; }\n.wc-slideUp { animation: wc-slide-up .45s ease both; }\n.wc-popIn { animation: wc-pop-in .38s ease both; }\n.wc-hoverGrow:hover { transform: scale(1.06); }\n.wc-hoverLift:hover { transform: translateY(-6px); box-shadow: 0 10px 24px rgba(0,0,0,.16); }\n.wc-loopPulse { animation: wc-pulse 1.4s ease infinite; }\n@keyframes wc-pulse { 50% { transform: scale(1.12); } }\n@keyframes wc-shake { 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(5px); } }\n@keyframes wc-fade { 50% { opacity: .22; } }\n@keyframes wc-fade-in { from { opacity: 0; } to { opacity: 1; } }\n@keyframes wc-slide-up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }\n@keyframes wc-pop-in { from { opacity: 0; transform: scale(.86); } to { opacity: 1; transform: scale(1); } }';
   }
 
   function escJS(s) {
@@ -3180,11 +3269,14 @@ body.authed .loggedInOnly{display:inline-flex;}
 
   function buildHTML(css, js) {
     var canvas = getCanvasSize();
+    var w = Math.max(1, Math.round(canvas.w));
+    var h = Math.max(1, Math.round(canvas.h));
     var html = '<!DOCTYPE html>\n<html lang="ko">\n<head>\n<meta charset="UTF-8">\n<title>내 웹사이트</title>\n';
     html += '<style>\n'+css+'\n</style>\n</head>\n<body>\n';
-    html += '<div style="position:relative;width:100%;height:'+Math.max(1, Math.round(canvas.h))+'px;min-height:100vh;overflow:hidden;">\n';
+    html += '<div class="wc-preview-shell">\n';
+    html += '<div class="wc-stage" style="width:'+w+'px;height:'+h+'px;">\n';
     html += buildBody();
-    html += '</div>\n';
+    html += '</div>\n</div>\n';
     html += '<scr'+'ipt>\n'+js+'\n</scr'+'ipt>\n</bo'+'dy>\n</ht'+'ml>';
     return html;
   }
