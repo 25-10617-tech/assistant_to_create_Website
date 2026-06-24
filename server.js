@@ -16,6 +16,8 @@ const PUBLIC_ORIGINS = String(process.env.PUBLIC_ORIGIN || '')
   .split(',')
   .map(origin => origin.trim())
   .filter(Boolean);
+const CORS_METHODS = 'GET, POST, DELETE, OPTIONS';
+const CORS_HEADERS = 'Content-Type, Authorization';
 const loginAttempts = new Map();
 
 const MIME = {
@@ -133,6 +135,23 @@ function expectedOrigins(req) {
     origins.add(`https://${host}`);
   }
   return origins;
+}
+
+function corsOrigin(req) {
+  const origin = req.headers.origin;
+  if (!origin) return '';
+  return expectedOrigins(req).has(origin) ? origin : '';
+}
+
+function applyCors(req, res) {
+  const origin = corsOrigin(req);
+  if (!origin) return false;
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Access-Control-Allow-Methods', CORS_METHODS);
+  res.setHeader('Access-Control-Allow-Headers', CORS_HEADERS);
+  res.setHeader('Access-Control-Max-Age', '600');
+  res.setHeader('Vary', 'Origin');
+  return true;
 }
 
 function assertSameOrigin(req) {
@@ -312,11 +331,20 @@ async function handleLogin(req, res) {
     return send(res, 401, { error: '아이디 또는 비밀번호가 맞지 않습니다.' });
   }
 
-  return send(res, 200, { username, created }, {
-    'Set-Cookie': sessionCookie(req, signToken(username))
+  const token = signToken(username);
+  return send(res, 200, { username, created, token, expiresIn: Math.floor(TOKEN_TTL_MS / 1000) }, {
+    'Set-Cookie': sessionCookie(req, token)
   });
 }
 async function handleApi(req, res, url) {
+  if (req.method === 'OPTIONS') {
+    if (!corsOrigin(req)) return send(res, 403, { error: '허용되지 않은 출처의 요청입니다.' });
+    res.writeHead(204, {
+      'Cache-Control': 'no-store',
+      ...SECURITY_HEADERS
+    });
+    return res.end();
+  }
   if (!assertSameOrigin(req)) {
     return send(res, 403, { error: '허용되지 않은 출처의 요청입니다.' });
   }
@@ -418,6 +446,7 @@ function serveStatic(req, res, url) {
 ensureStore();
 http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  applyCors(req, res);
   try {
     if (url.pathname.startsWith('/api/')) return await handleApi(req, res, url);
     return serveStatic(req, res, url);

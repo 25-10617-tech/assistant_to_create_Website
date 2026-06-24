@@ -445,6 +445,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   </div>
 </div>
 
+<script src="webcraft-config.js"></script>
 <script>
 (function() {
   var els = [];
@@ -484,6 +485,8 @@ body.authed .loggedInOnly{display:inline-flex;}
   var LOCAL_AUTH_KEY = 'webcraft-local-auth-v1';
   var LOCAL_SESSION_KEY = 'webcraft-local-session-v1';
   var LOCAL_ATTEMPTS_KEY = 'webcraft-local-login-attempts-v1';
+  var SERVER_TOKEN_KEY = 'webcraft-server-token-v1';
+  var API_BASE_STORAGE_KEY = 'webcraft-api-base-v1';
   var LOCAL_PASSWORD_ITERATIONS = 120000;
   var LOCAL_LOGIN_WINDOW_MS = 1000 * 60 * 15;
   var LOCAL_LOGIN_MAX_ATTEMPTS = 20;
@@ -496,6 +499,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   var authMode = 'login';
   var messageResolver = null;
   var localApiMode = location.protocol === 'file:';
+  var remoteApiBase = getConfiguredApiBase();
 
   function snapshot() {
     return {
@@ -743,6 +747,60 @@ body.authed .loggedInOnly{display:inline-flex;}
 
   function writeJsonStorage(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
+  }
+
+  function normalizeApiBase(value) {
+    value = String(value || '').trim();
+    if (!value) return '';
+    try {
+      var parsed = new URL(value, location.href);
+      var isLocalDev = /^localhost$|^127\.0\.0\.1$/.test(parsed.hostname);
+      if (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && isLocalDev)) return '';
+      parsed.hash = '';
+      parsed.search = '';
+      return parsed.href.replace(/\/+$/, '');
+    } catch (err) {
+      return '';
+    }
+  }
+
+  function getConfiguredApiBase() {
+    var fromQuery = '';
+    try {
+      var params = new URLSearchParams(location.search);
+      fromQuery = params.get('api') || params.get('apiBase') || '';
+      fromQuery = normalizeApiBase(fromQuery);
+      if (fromQuery) localStorage.setItem(API_BASE_STORAGE_KEY, fromQuery);
+    } catch (err) {}
+    return normalizeApiBase(fromQuery) ||
+      normalizeApiBase(window.WEBCRAFT_API_BASE) ||
+      normalizeApiBase(localStorage.getItem(API_BASE_STORAGE_KEY));
+  }
+
+  function configuredRemoteApi() {
+    if (!remoteApiBase) remoteApiBase = getConfiguredApiBase();
+    return remoteApiBase;
+  }
+
+  function buildApiUrl(url) {
+    var base = configuredRemoteApi();
+    if (!base) return url;
+    return base + parseApiPath(url);
+  }
+
+  function getServerToken() {
+    try {
+      return sessionStorage.getItem(SERVER_TOKEN_KEY) || '';
+    } catch (err) {
+      return '';
+    }
+  }
+
+  function setServerToken(token) {
+    try {
+      if (token) sessionStorage.setItem(SERVER_TOKEN_KEY, token);
+      else sessionStorage.removeItem(SERVER_TOKEN_KEY);
+    } catch (err) {}
   }
 
   function getLocalDb() {
@@ -1010,17 +1068,26 @@ body.authed .loggedInOnly{display:inline-flex;}
   async function apiFetch(url, options) {
     if (localApiMode) return localApiFetch(url, options);
     options = options || {};
+    var apiBase = configuredRemoteApi();
+    var requestUrl = buildApiUrl(url);
+    var token = getServerToken();
     options.headers = Object.assign({
       'Content-Type': 'application/json'
     }, options.headers || {});
-    options.credentials = 'same-origin';
+    if (token && !options.headers.Authorization) {
+      options.headers.Authorization = 'Bearer ' + token;
+    }
+    options.credentials = apiBase ? 'omit' : 'same-origin';
     var res;
     try {
-      res = await fetch(url, options);
+      res = await fetch(requestUrl, options);
     } catch (err) {
       if (location.protocol === 'file:') {
         localApiMode = true;
         return localApiFetch(url, options);
+      }
+      if (apiBase) {
+        throw new Error('설정된 API 서버에 연결할 수 없습니다. 서버 주소, 배포 상태, PUBLIC_ORIGIN 설정을 확인하세요.');
       }
       throw new Error('서버에 연결할 수 없습니다. 파일 링크로 열면 이 브라우저에만 저장되는 로컬 로그인으로 동작합니다.');
     }
@@ -1036,12 +1103,17 @@ body.authed .loggedInOnly{display:inline-flex;}
       }
     }
 
-    if ((looksHtml || res.status === 404 || res.status === 405) && parseApiPath(url).indexOf('/api/') === 0) {
+    if (apiBase && looksHtml) {
+      throw new Error('API 서버가 JSON 대신 HTML을 보냈습니다. WEBCRAFT_API_BASE가 서버 루트 주소인지 확인하세요.');
+    }
+
+    if (!apiBase && (looksHtml || res.status === 404 || res.status === 405) && parseApiPath(url).indexOf('/api/') === 0) {
       localApiMode = true;
       return localApiFetch(url, options);
     }
 
     if (!res.ok) {
+      if (res.status === 401) setServerToken('');
       throw new Error(data.error || res.statusText || '요청에 실패했습니다.');
     }
     return data;
@@ -1111,6 +1183,7 @@ body.authed .loggedInOnly{display:inline-flex;}
         method: 'POST',
         body: JSON.stringify({ username: username, email: email, password: password, passwordConfirm: passwordConfirm, action: action })
       });
+      if (data.token) setServerToken(data.token);
       saveAuthSession({ username: data.username });
       document.getElementById('authEmail').value = '';
       document.getElementById('authPass').value = '';
@@ -1813,6 +1886,7 @@ body.authed .loggedInOnly{display:inline-flex;}
     try {
       await apiFetch('/api/logout', { method: 'POST' });
     } catch (err) {}
+    setServerToken('');
     saveAuthSession(null);
     setAuthStatus('로그아웃됨', false);
   });
