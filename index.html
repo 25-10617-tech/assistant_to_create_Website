@@ -145,6 +145,21 @@ body.authed .loggedInOnly{display:inline-flex;}
 #messageDialog.success{border-color:rgba(104,204,150,.5);}
 #messageDialog.success #messageTitle{color:#9ee0bb;}
 #messageActions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+#canvasChoiceModal{display:none;position:fixed;inset:0;z-index:92;background:rgba(0,0,0,.48);align-items:center;justify-content:center;padding:20px;}
+#canvasChoiceModal.on{display:flex;}
+#canvasChoiceDialog{width:min(720px,100%);max-height:calc(100vh - 40px);overflow:auto;background:#242424;color:var(--fg);border:1px solid var(--bd);border-radius:8px;box-shadow:0 22px 64px rgba(0,0,0,.44);padding:18px;}
+#canvasChoiceDialog h2{font-size:16px;margin-bottom:6px;}
+#canvasChoiceHint{font-size:12px;line-height:1.45;color:#aaa;margin-bottom:14px;}
+.canvasPresetGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;}
+.canvasPresetCard{display:grid;grid-template-rows:92px auto auto;gap:7px;width:100%;min-height:158px;background:#2c2c2c;border:1px solid var(--bd);color:var(--fg);border-radius:7px;padding:10px;text-align:left;cursor:pointer;}
+.canvasPresetCard:hover,.canvasPresetCard.on{border-color:var(--ac);background:#333;}
+.canvasPresetVisual{display:flex;align-items:center;justify-content:center;background:#1e1e1e;border:1px solid #3a3a3a;border-radius:5px;overflow:hidden;}
+.canvasPresetSheet{background:#f7f7f7;border:1px solid #ddd;box-shadow:0 4px 14px rgba(0,0,0,.28);}
+.canvasPresetName{font-size:13px;font-weight:700;color:#fff;}
+.canvasPresetMeta{font-size:11px;color:var(--fg2);line-height:1.35;}
+.canvasCustomBox{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--bd);}
+.canvasCustomBox .fieldMini input{margin:0;}
+#canvasChoiceActions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
 
 /* 코드뷰 */
 #codev{display:none;flex:1;flex-direction:column;background:#1a1a1a;}
@@ -430,6 +445,21 @@ body.authed .loggedInOnly{display:inline-flex;}
     </div>
   </div>
 </div>
+<div id="canvasChoiceModal" role="dialog" aria-modal="true" aria-labelledby="canvasChoiceTitle">
+  <div id="canvasChoiceDialog">
+    <h2 id="canvasChoiceTitle">새 작품 캔버스</h2>
+    <p id="canvasChoiceHint">만들 사이트에 가까운 화면 크기를 선택하세요.</p>
+    <div class="canvasPresetGrid" id="canvasPresetGrid"></div>
+    <div class="canvasCustomBox">
+      <label class="fieldMini"><span>직접 입력 너비</span><input class="pi" id="newCanvasW" type="number" min="240" max="5000" value="1440"></label>
+      <label class="fieldMini"><span>직접 입력 높이</span><input class="pi" id="newCanvasH" type="number" min="240" max="8000" value="1800"></label>
+    </div>
+    <div id="canvasChoiceActions">
+      <button class="hb" id="canvasChoiceCancel" type="button">취소</button>
+      <button class="hb" id="canvasChoiceCustom" type="button">직접 입력으로 만들기</button>
+    </div>
+  </div>
+</div>
 <div id="contactModal" role="dialog" aria-modal="true" aria-labelledby="contactTitle" style="display:none;position:fixed;inset:0;z-index:95;background:rgba(0,0,0,.48);align-items:center;justify-content:center;padding:20px;">
   <div id="contactDialog" style="width:min(420px,100%);background:#242424;color:var(--fg);border:1px solid var(--bd);border-radius:8px;box-shadow:0 22px 64px rgba(0,0,0,.44);padding:18px;position:relative;">
     <button id="contactClose" type="button" title="닫기" style="position:absolute;top:8px;right:8px;width:26px;height:26px;border:0;background:transparent;color:var(--fg);font-size:18px;cursor:pointer;">x</button>
@@ -475,6 +505,15 @@ body.authed .loggedInOnly{display:inline-flex;}
     landing: { w:1440, h:1800 },
     long: { w:1440, h:2400 }
   };
+  var CANVAS_PRESET_LABELS = {
+    auto: { name:'현재 화면', meta:'지금 작업 영역에 맞춤', w:960, h:600 },
+    desktop: { name:'데스크톱', meta:'PC 웹 기본 화면' },
+    laptop: { name:'노트북', meta:'일반 노트북 화면' },
+    tablet: { name:'태블릿', meta:'세로 태블릿 화면' },
+    mobile: { name:'모바일', meta:'휴대폰 세로 화면' },
+    landing: { name:'랜딩 페이지', meta:'긴 소개 페이지' },
+    long: { name:'긴 페이지', meta:'스크롤 많은 페이지' }
+  };
 
   var cv = document.getElementById('cv');
   var hint = document.getElementById('hint');
@@ -498,6 +537,7 @@ body.authed .loggedInOnly{display:inline-flex;}
   var activeProjectTitle = '';
   var authMode = 'login';
   var messageResolver = null;
+  var canvasChoiceResolver = null;
   var localApiMode = location.protocol === 'file:';
   var remoteApiBase = getConfiguredApiBase();
 
@@ -1236,28 +1276,68 @@ body.authed .loggedInOnly{display:inline-flex;}
     return title;
   }
 
+  function canvasChoiceSizeForPreset(value) {
+    if (value === 'auto') return { w: 960, h: 600 };
+    return CANVAS_PRESETS[value] || { w: 960, h: 600 };
+  }
+
+  function renderCanvasPresetGrid(resolve) {
+    var grid = document.getElementById('canvasPresetGrid');
+    grid.innerHTML = '';
+    ['landing', 'desktop', 'laptop', 'mobile', 'tablet', 'long', 'auto'].forEach(function(value) {
+      var size = canvasChoiceSizeForPreset(value);
+      var label = CANVAS_PRESET_LABELS[value] || { name:value, meta:'' };
+      var scale = Math.min(112 / size.w, 72 / size.h);
+      var sheetW = Math.max(18, Math.round(size.w * scale));
+      var sheetH = Math.max(18, Math.round(size.h * scale));
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'canvasPresetCard' + (value === (canvasPreset === 'custom' ? 'landing' : canvasPreset) ? ' on' : '');
+      btn.innerHTML = '<div class="canvasPresetVisual"><div class="canvasPresetSheet"></div></div><div class="canvasPresetName"></div><div class="canvasPresetMeta"></div>';
+      btn.querySelector('.canvasPresetSheet').style.width = sheetW + 'px';
+      btn.querySelector('.canvasPresetSheet').style.height = sheetH + 'px';
+      btn.querySelector('.canvasPresetName').textContent = label.name;
+      btn.querySelector('.canvasPresetMeta').textContent = value === 'auto' ? label.meta : size.w + ' x ' + size.h + ' · ' + label.meta;
+      btn.addEventListener('click', function() {
+        closeCanvasChoiceModal({ preset:value });
+      });
+      grid.appendChild(btn);
+    });
+  }
+
+  function closeCanvasChoiceModal(value) {
+    document.getElementById('canvasChoiceModal').classList.remove('on');
+    if (canvasChoiceResolver) {
+      var resolve = canvasChoiceResolver;
+      canvasChoiceResolver = null;
+      resolve(value || null);
+    }
+  }
+
   async function promptCanvasSizeForNewProject() {
-    var message = '캔버스 크기를 입력하세요. auto, desktop, laptop, tablet, mobile, landing, long 또는 1440x1800 형식으로 입력할 수 있습니다.';
-    var value = await askPrompt('새 작품 캔버스', message, canvasPreset === 'auto' ? 'landing' : canvasPreset);
-    if (value === null) return null;
-    value = value.trim().toLowerCase();
-    if (!value) value = 'auto';
-    if (value === '현재 화면에 맞춤') value = 'auto';
-    if (CANVAS_PRESETS[value] || value === 'auto') {
-      return { preset:value };
-    }
-    var match = value.match(/^(\d{3,5})\s*[x*×]\s*(\d{3,5})$/);
-    if (match) {
-      return {
-        preset:'custom',
-        size:{
-          w: clamp(+match[1], 240, 5000),
-          h: clamp(+match[2], 240, 8000)
-        }
+    return new Promise(function(resolve) {
+      canvasChoiceResolver = resolve;
+      var modal = document.getElementById('canvasChoiceModal');
+      var wInput = document.getElementById('newCanvasW');
+      var hInput = document.getElementById('newCanvasH');
+      var baseSize = canvasPreset === 'custom' ? customCanvasSize : canvasChoiceSizeForPreset(canvasPreset === 'auto' ? 'landing' : canvasPreset);
+      wInput.value = baseSize.w;
+      hInput.value = baseSize.h;
+      renderCanvasPresetGrid(resolve);
+      modal.classList.add('on');
+      document.getElementById('canvasChoiceCancel').onclick = function() {
+        closeCanvasChoiceModal(null);
       };
-    }
-    setAuthStatus('캔버스 크기는 auto, desktop, laptop, tablet, mobile, landing, long 또는 1440x1800 형식으로 입력하세요.', true);
-    return null;
+      document.getElementById('canvasChoiceCustom').onclick = function() {
+        closeCanvasChoiceModal({
+          preset:'custom',
+          size:{
+            w: clamp(+wInput.value || 1440, 240, 5000),
+            h: clamp(+hInput.value || 1800, 240, 8000)
+          }
+        });
+      };
+    });
   }
 
   function selectedProjectTitle() {
@@ -1834,6 +1914,11 @@ body.authed .loggedInOnly{display:inline-flex;}
   });
   document.getElementById('messageModal').addEventListener('mousedown', function(ev) {
     if (ev.target === this) closeMessage();
+  });
+  document.getElementById('canvasChoiceModal').addEventListener('mousedown', function(ev) {
+    if (ev.target === this) {
+      closeCanvasChoiceModal();
+    }
   });
   document.getElementById('bottomHome').addEventListener('click', function() {
     setView('design');
