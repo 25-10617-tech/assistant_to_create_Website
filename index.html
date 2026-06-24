@@ -113,6 +113,10 @@ body.authed .loggedInOnly{display:inline-flex;}
 .pi.ta{min-height:88px;resize:vertical;font-family:'Courier New',monospace;line-height:1.4;}
 .pi:last-child{margin-bottom:0;}
 .pi:focus{border-color:var(--ac);}
+.colorControl{display:grid;grid-template-columns:42px minmax(0,1fr) 34px;gap:7px;align-items:center;}
+.colorControl .pi{margin:0;}
+.colorControl input[type=range]{width:100%;accent-color:var(--ac);}
+.alphaValue{color:var(--fg2);font-size:11px;text-align:right;}
 .stepper{display:grid;grid-template-columns:28px minmax(0,1fr) 28px;gap:4px;margin-bottom:5px;}
 .stepper .pi{margin-bottom:0;min-width:0;}
 .stepBtn{background:var(--p2);border:1px solid var(--bd);color:var(--fg);border-radius:4px;font-size:15px;font-weight:700;line-height:1;cursor:pointer;}
@@ -468,8 +472,8 @@ body.authed .loggedInOnly{display:inline-flex;}
         </select>
       </div>
       <div class="ps" id="row-fs"><div class="pl" id="row-fs-label">폰트 크기(px)</div><input class="pi" id="pfs" type="number" min="1"></div>
-      <div class="ps" id="row-col"><div class="pl" id="row-col-label">글자색</div><input class="pi" id="pcol" type="color"></div>
-      <div class="ps" id="row-bg"><div class="pl" id="row-bg-label">배경색</div><input class="pi" id="pbg" type="color"></div>
+      <div class="ps" id="row-col"><div class="pl" id="row-col-label">글자색</div><div class="colorControl"><input class="pi" id="pcol" type="color"><input id="pcolAlpha" type="range" min="0" max="100" value="100" title="글자색 투명도"><span class="alphaValue" id="pcolAlphaValue">100%</span></div></div>
+      <div class="ps" id="row-bg"><div class="pl" id="row-bg-label">배경색</div><div class="colorControl"><input class="pi" id="pbg" type="color"><input id="pbgAlpha" type="range" min="0" max="100" value="100" title="배경색 투명도"><span class="alphaValue" id="pbgAlphaValue">100%</span></div></div>
       <div class="ps" id="row-shape" style="display:none">
         <div class="pl">모양</div>
         <select class="pi" id="pshape">
@@ -541,14 +545,14 @@ body.authed .loggedInOnly{display:inline-flex;}
         <div id="action-source" style="display:none"><div class="pl">값을 가져올 입력창</div><select class="pi" id="psource"></select></div>
         <div id="action-value" style="display:none"><div class="pl" id="action-value-label">바꿀 내용</div><input class="pi" id="pvalue" type="text"></div>
         <div id="action-bg" style="display:none">
-          <div class="pl">바꿀 배경색</div><input class="pi" id="pactbg" type="color">
+          <div class="pl">바꿀 배경색</div><div class="colorControl"><input class="pi" id="pactbg" type="color"><input id="pactbgAlpha" type="range" min="0" max="100" value="100" title="배경색 투명도"><span class="alphaValue" id="pactbgAlphaValue">100%</span></div>
           <div class="pl">적용 방식</div>
           <select class="pi" id="pactbgmode">
             <option value="set">한 번 바꾸기</option>
             <option value="toggle">토글하기</option>
           </select>
         </div>
-        <div id="action-color" style="display:none"><div class="pl" id="action-color-label">바꿀 색상</div><input class="pi" id="ptargetcolor" type="color"></div>
+        <div id="action-color" style="display:none"><div class="pl" id="action-color-label">바꿀 색상</div><div class="colorControl"><input class="pi" id="ptargetcolor" type="color"><input id="ptargetcolorAlpha" type="range" min="0" max="100" value="100" title="색상 투명도"><span class="alphaValue" id="ptargetcolorAlphaValue">100%</span></div></div>
       </div>
       <div class="ps"><button class="pi dangerBtn" id="btnDelOne" type="button">요소 삭제</button></div>
     </div>
@@ -2127,6 +2131,14 @@ body.authed .loggedInOnly{display:inline-flex;}
     document.getElementById('action-color-label').textContent = action === 'targetColor' ? '바꿀 글자색' : (action === 'targetBorder' ? '테두리 색상' : '바꿀 배경색');
   }
 
+  function setAlphaInput(id, value) {
+    var input = document.getElementById(id);
+    var label = document.getElementById(id + 'Value');
+    if (!input) return;
+    input.value = normalizeAlpha(value, 100);
+    if (label) label.textContent = input.value + '%';
+  }
+
   function elementLabel(e) {
     var label = e.text || e.ph || e.url || e.type;
     label = String(label).trim().slice(0, 22) || e.type;
@@ -2153,15 +2165,19 @@ body.authed .loggedInOnly{display:inline-flex;}
     e.fs = saneNumber(e.fs, d.fs, 1, 300);
     e.font = normalizeFontKey(e.font || d.font || 'system');
     e.col = normalizeColorLike(e.col, d.col);
+    e.colA = normalizeAlpha(e.colA, d.colA == null ? 100 : d.colA);
     e.bg = normalizeColorLike(e.bg, d.bg);
+    e.bgA = normalizeAlpha(e.bgA, d.bgA == null ? 100 : d.bgA);
     e.url = e.url == null ? '' : String(e.url);
     e.ph = e.ph == null ? d.ph : String(e.ph);
     e.action = e.action || 'none';
     e.msg = e.msg == null ? '' : String(e.msg);
     e.link = e.link == null ? '' : String(e.link);
     e.actBg = normalizeColorLike(e.actBg, '#ffffff');
+    e.actBgA = normalizeAlpha(e.actBgA, 100);
     e.actBgMode = e.actBgMode === 'toggle' ? 'toggle' : 'set';
     e.targetColor = normalizeColorLike(e.targetColor, '#E05454');
+    e.targetColorA = normalizeAlpha(e.targetColorA, 100);
     e.targetId = e.targetId == null ? '' : String(e.targetId);
     e.sourceId = e.sourceId == null ? '' : String(e.sourceId);
     e.actionValue = e.actionValue == null ? '' : String(e.actionValue);
@@ -2213,6 +2229,36 @@ body.authed .loggedInOnly{display:inline-flex;}
     if (/^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(color)) return color;
     if (/^(rgb|rgba|hsl|hsla)\(/i.test(color)) return color;
     return fallback;
+  }
+
+  function normalizeAlpha(value, fallback) {
+    var n = Number(value);
+    if (!isFinite(n)) n = fallback == null ? 100 : fallback;
+    return Math.max(0, Math.min(100, Math.round(n)));
+  }
+
+  function colorInputValue(value, fallback) {
+    var color = normalizeColorLike(value, fallback || '#000000');
+    var shortHex = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/i.exec(color);
+    if (shortHex) return '#' + shortHex[1] + shortHex[1] + shortHex[2] + shortHex[2] + shortHex[3] + shortHex[3];
+    return /^#[0-9a-f]{6}$/i.test(color) ? color : (fallback || '#000000');
+  }
+
+  function colorWithAlpha(color, alpha) {
+    color = normalizeColorLike(color, '#000000');
+    if (color === 'transparent') return 'transparent';
+    alpha = normalizeAlpha(alpha, 100);
+    if (alpha >= 100) return color;
+    var hex = colorInputValue(color, '');
+    if (!hex) return color;
+    var r = parseInt(hex.slice(1, 3), 16);
+    var g = parseInt(hex.slice(3, 5), 16);
+    var b = parseInt(hex.slice(5, 7), 16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + (alpha / 100).toFixed(2).replace(/0+$/, '').replace(/\.$/, '') + ')';
+  }
+
+  function elementColor(e, prop) {
+    return colorWithAlpha(e[prop], e[prop + 'A']);
   }
 
   function refreshCanvasVisibility() {
@@ -2792,7 +2838,9 @@ body.authed .loggedInOnly{display:inline-flex;}
   document.getElementById('pfont').addEventListener('change', function() { applyProp('font'); });
   document.getElementById('pfs').addEventListener('input', function() { applyProp('fs'); });
   document.getElementById('pcol').addEventListener('input', function() { applyProp('col'); });
+  document.getElementById('pcolAlpha').addEventListener('input', function() { applyProp('colA'); });
   document.getElementById('pbg').addEventListener('input', function() { applyProp('bg'); });
+  document.getElementById('pbgAlpha').addEventListener('input', function() { applyProp('bgA'); });
   document.getElementById('pshape').addEventListener('change', function() { applyProp('shape'); });
   document.getElementById('pradius').addEventListener('input', function() { applyProp('radius'); });
   document.getElementById('px').addEventListener('input', function() { applyProp('x'); });
@@ -2817,8 +2865,10 @@ body.authed .loggedInOnly{display:inline-flex;}
   document.getElementById('pmsg').addEventListener('input', function() { applyProp('msg'); });
   document.getElementById('plink').addEventListener('input', function() { applyProp('link'); });
   document.getElementById('pactbg').addEventListener('input', function() { applyProp('actBg'); });
+  document.getElementById('pactbgAlpha').addEventListener('input', function() { applyProp('actBgA'); });
   document.getElementById('pactbgmode').addEventListener('change', function() { applyProp('actBgMode'); });
   document.getElementById('ptargetcolor').addEventListener('input', function() { applyProp('targetColor'); });
+  document.getElementById('ptargetcolorAlpha').addEventListener('input', function() { applyProp('targetColorA'); });
   document.getElementById('ptarget').addEventListener('change', function() { applyProp('targetId'); });
   document.getElementById('psource').addEventListener('change', function() { applyProp('sourceId'); });
   document.getElementById('pvalue').addEventListener('input', function() { applyProp('actionValue'); });
@@ -2854,14 +2904,17 @@ body.authed .loggedInOnly{display:inline-flex;}
       w:d.w, h:d.h,
       text:d.text, fs:d.fs,
       font:d.font || 'system',
-      col:d.col, bg:d.bg,
+      col:d.col, colA:d.colA == null ? 100 : d.colA,
+      bg:d.bg, bgA:d.bgA == null ? 100 : d.bgA,
       url:d.url, ph:d.ph,
       action:d.action || 'none',
       msg:d.msg || '',
       link:d.link || '',
       actBg:d.actBg || '#ffffff',
+      actBgA:d.actBgA == null ? 100 : d.actBgA,
       actBgMode:d.actBgMode || 'set',
       targetColor:d.targetColor || '#E05454',
+      targetColorA:d.targetColorA == null ? 100 : d.targetColorA,
       targetId:d.targetId || '',
       sourceId:d.sourceId || '',
       actionValue:d.actionValue || '',
@@ -2901,18 +2954,20 @@ body.authed .loggedInOnly{display:inline-flex;}
     var inn = document.createElement('div');
     inn.style.cssText = 'width:100%;height:100%;';
     var fontStyle = fontCss(e);
+    var textColor = elementColor(e, 'col');
+    var bgColor = elementColor(e, 'bg');
 
     if (e.type === 'text' || e.type === 'heading') {
-      inn.style.cssText += fontStyle+'font-size:'+e.fs+'px;color:'+e.col+';'+(e.type==='heading'?'font-weight:700;':'')+'padding:2px;word-break:break-word;background:'+(e.bg==='transparent'?'transparent':e.bg)+';';
+      inn.style.cssText += fontStyle+'font-size:'+e.fs+'px;color:'+textColor+';'+(e.type==='heading'?'font-weight:700;':'')+'padding:2px;word-break:break-word;background:'+bgColor+';';
       inn.textContent = e.text;
     } else if (e.type === 'icon') {
-      inn.style.cssText += fontStyle+'font-size:'+e.fs+'px;color:'+e.col+';background:'+(e.bg==='transparent'?'transparent':e.bg)+';display:flex;align-items:center;justify-content:center;line-height:1;'+boxShapeCss(e);
+      inn.style.cssText += fontStyle+'font-size:'+e.fs+'px;color:'+textColor+';background:'+bgColor+';display:flex;align-items:center;justify-content:center;line-height:1;'+boxShapeCss(e);
       renderIcon(inn, e);
     } else if (e.type === 'link') {
-      inn.style.cssText += fontStyle+'font-size:'+e.fs+'px;color:'+e.col+';background:'+(e.bg==='transparent'?'transparent':e.bg)+';display:flex;align-items:center;text-decoration:underline;text-underline-offset:3px;'+boxShapeCss(e);
+      inn.style.cssText += fontStyle+'font-size:'+e.fs+'px;color:'+textColor+';background:'+bgColor+';display:flex;align-items:center;text-decoration:underline;text-underline-offset:3px;'+boxShapeCss(e);
       inn.textContent = e.text || '링크 텍스트';
     } else if (e.type === 'button') {
-      inn.style.cssText += fontStyle+'font-size:'+e.fs+'px;color:'+e.col+';background:'+e.bg+';display:flex;align-items:center;justify-content:center;font-weight:500;'+boxShapeCss(e);
+      inn.style.cssText += fontStyle+'font-size:'+e.fs+'px;color:'+textColor+';background:'+bgColor+';display:flex;align-items:center;justify-content:center;font-weight:500;'+boxShapeCss(e);
       inn.textContent = e.text;
     } else if (e.type === 'image') {
       if (e.url) {
@@ -2922,17 +2977,17 @@ body.authed .loggedInOnly{display:inline-flex;}
         img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
         inn.appendChild(img);
       } else {
-        inn.style.cssText += fontStyle+'background:'+e.bg+';border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;color:'+e.col+';font-size:'+e.fs+'px;'+boxShapeCss(e);
+        inn.style.cssText += fontStyle+'background:'+bgColor+';border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;color:'+textColor+';font-size:'+e.fs+'px;'+boxShapeCss(e);
         inn.textContent = e.text || '이미지';
       }
     } else if (e.type === 'input') {
       var inp = document.createElement('input');
       inp.type = 'text'; inp.placeholder = e.ph;
-      inp.style.cssText = 'width:100%;height:100%;'+fontStyle+'font-size:'+e.fs+'px;color:'+e.col+';background:'+e.bg+';border:1px solid #ccc;padding:0 10px;outline:none;'+boxShapeCss(e);
+      inp.style.cssText = 'width:100%;height:100%;'+fontStyle+'font-size:'+e.fs+'px;color:'+textColor+';background:'+bgColor+';border:1px solid #ccc;padding:0 10px;outline:none;'+boxShapeCss(e);
       inn.appendChild(inp);
     } else if (e.type === 'select') {
       var selEl = document.createElement('select');
-      selEl.style.cssText = 'width:100%;height:100%;'+fontStyle+'font-size:'+e.fs+'px;color:'+e.col+';background:'+e.bg+';border:1px solid #ccc;padding:0 10px;outline:none;'+boxShapeCss(e);
+      selEl.style.cssText = 'width:100%;height:100%;'+fontStyle+'font-size:'+e.fs+'px;color:'+textColor+';background:'+bgColor+';border:1px solid #ccc;padding:0 10px;outline:none;'+boxShapeCss(e);
       listItems(e.text).forEach(function(item) {
         var opt = document.createElement('option');
         opt.textContent = item;
@@ -2940,7 +2995,7 @@ body.authed .loggedInOnly{display:inline-flex;}
       });
       inn.appendChild(selEl);
     } else if (e.type === 'checkbox' || e.type === 'radio') {
-      inn.style.cssText += fontStyle+'font-size:'+e.fs+'px;color:'+e.col+';background:'+(e.bg==='transparent'?'transparent':e.bg)+';display:flex;align-items:center;gap:8px;padding:0 4px;'+boxShapeCss(e);
+      inn.style.cssText += fontStyle+'font-size:'+e.fs+'px;color:'+textColor+';background:'+bgColor+';display:flex;align-items:center;gap:8px;padding:0 4px;'+boxShapeCss(e);
       var control = document.createElement('input');
       control.type = e.type;
       control.name = e.type === 'radio' ? 'webcraft-radio' : '';
@@ -2949,10 +3004,10 @@ body.authed .loggedInOnly{display:inline-flex;}
       inn.appendChild(control);
       inn.appendChild(labelText);
     } else if (e.type === 'card') {
-      inn.style.cssText += fontStyle+'font-size:'+e.fs+'px;color:'+e.col+';background:'+e.bg+';border:1px solid #e0e0e0;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);'+boxShapeCss(e);
+      inn.style.cssText += fontStyle+'font-size:'+e.fs+'px;color:'+textColor+';background:'+bgColor+';border:1px solid #e0e0e0;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);'+boxShapeCss(e);
       inn.textContent = e.text;
     } else if (e.type === 'list') {
-      inn.style.cssText += fontStyle+'font-size:'+e.fs+'px;color:'+e.col+';background:'+(e.bg==='transparent'?'transparent':e.bg)+';padding:8px 8px 8px 24px;line-height:1.55;'+boxShapeCss(e);
+      inn.style.cssText += fontStyle+'font-size:'+e.fs+'px;color:'+textColor+';background:'+bgColor+';padding:8px 8px 8px 24px;line-height:1.55;'+boxShapeCss(e);
       var ul = document.createElement('ul');
       ul.style.cssText = listStyleCss(e);
       listItems(e.text).forEach(function(item) {
@@ -2963,7 +3018,7 @@ body.authed .loggedInOnly{display:inline-flex;}
       inn.appendChild(ul);
     } else if (e.type === 'nav') {
       var items = listItems(e.text);
-      inn.style.cssText += fontStyle+'font-size:'+e.fs+'px;color:'+e.col+';background:'+e.bg+';border:1px solid #e5e5e5;padding:0 18px;display:flex;align-items:center;gap:22px;box-shadow:0 1px 4px rgba(0,0,0,.06);'+boxShapeCss(e);
+      inn.style.cssText += fontStyle+'font-size:'+e.fs+'px;color:'+textColor+';background:'+bgColor+';border:1px solid #e5e5e5;padding:0 18px;display:flex;align-items:center;gap:22px;box-shadow:0 1px 4px rgba(0,0,0,.06);'+boxShapeCss(e);
       var brand = document.createElement('strong');
       brand.textContent = items.shift() || 'Brand';
       brand.style.cssText = 'margin-right:auto;font-size:'+(e.fs+2)+'px;';
@@ -3058,7 +3113,7 @@ body.authed .loggedInOnly{display:inline-flex;}
       target.textContent = iconCustomValue(e);
       return;
     }
-    target.innerHTML = iconSvg(kind, e.col);
+    target.innerHTML = iconSvg(kind, elementColor(e, 'col'));
   }
 
   function currentElement() {
@@ -3215,8 +3270,10 @@ body.authed .loggedInOnly{display:inline-flex;}
     document.getElementById('ptxt').value = e.text;
     document.getElementById('pfont').value = normalizeFontKey(e.font);
     document.getElementById('pfs').value = e.fs;
-    document.getElementById('pcol').value = e.col.startsWith('#') ? e.col : '#1a1a1a';
-    document.getElementById('pbg').value = (e.bg && e.bg!=='transparent') ? e.bg : '#ffffff';
+    document.getElementById('pcol').value = colorInputValue(e.col, '#1a1a1a');
+    setAlphaInput('pcolAlpha', e.colA);
+    document.getElementById('pbg').value = e.bg === 'transparent' ? '#ffffff' : colorInputValue(e.bg, '#ffffff');
+    setAlphaInput('pbgAlpha', e.bg === 'transparent' ? 0 : e.bgA);
     document.getElementById('px').value = Math.round(e.x);
     document.getElementById('py').value = Math.round(e.y);
     document.getElementById('pw').value = Math.round(e.w);
@@ -3235,9 +3292,11 @@ body.authed .loggedInOnly{display:inline-flex;}
     document.getElementById('pcondvalue').value = e.condValue || '';
     document.getElementById('pmsg').value = e.msg || '';
     document.getElementById('plink').value = e.link || '';
-    document.getElementById('pactbg').value = e.actBg || '#ffffff';
+    document.getElementById('pactbg').value = colorInputValue(e.actBg, '#ffffff');
+    setAlphaInput('pactbgAlpha', e.actBgA);
     document.getElementById('pactbgmode').value = e.actBgMode || 'set';
-    document.getElementById('ptargetcolor').value = e.targetColor || '#E05454';
+    document.getElementById('ptargetcolor').value = colorInputValue(e.targetColor, '#E05454');
+    setAlphaInput('ptargetcolorAlpha', e.targetColorA);
     document.getElementById('pvalue').value = e.actionValue || '';
     refreshActionSelects(e);
     document.getElementById('pcondsource').value = e.condSourceId || '';
@@ -3296,7 +3355,9 @@ body.authed .loggedInOnly{display:inline-flex;}
     else if (prop==='font') e.font=normalizeFontKey(g('pfont'));
     else if (prop==='fs') e.fs=+g('pfs');
     else if (prop==='col') e.col=g('pcol');
+    else if (prop==='colA') { e.colA=normalizeAlpha(g('pcolAlpha'), 100); setAlphaInput('pcolAlpha', e.colA); }
     else if (prop==='bg') e.bg=g('pbg');
+    else if (prop==='bgA') { e.bgA=normalizeAlpha(g('pbgAlpha'), 100); setAlphaInput('pbgAlpha', e.bgA); }
     else if (prop==='shape') e.shape=g('pshape');
     else if (prop==='radius') e.radius=+g('pradius');
     else if (prop==='x') e.x=+g('px');
@@ -3320,8 +3381,10 @@ body.authed .loggedInOnly{display:inline-flex;}
     else if (prop==='msg') e.msg=g('pmsg');
     else if (prop==='link') e.link=g('plink');
     else if (prop==='actBg') e.actBg=g('pactbg');
+    else if (prop==='actBgA') { e.actBgA=normalizeAlpha(g('pactbgAlpha'), 100); setAlphaInput('pactbgAlpha', e.actBgA); }
     else if (prop==='actBgMode') e.actBgMode=g('pactbgmode');
     else if (prop==='targetColor') e.targetColor=g('ptargetcolor');
+    else if (prop==='targetColorA') { e.targetColorA=normalizeAlpha(g('ptargetcolorAlpha'), 100); setAlphaInput('ptargetcolorAlpha', e.targetColorA); }
     else if (prop==='targetId') e.targetId=g('ptarget');
     else if (prop==='sourceId') e.sourceId=g('psource');
     else if (prop==='actionValue') e.actionValue=g('pvalue');
@@ -3631,8 +3694,8 @@ body.authed .loggedInOnly{display:inline-flex;}
 
   function listMarkerHtml(e) {
     var style = e.listStyle || 'disc';
-    if (style === 'check') return '<span style="display:inline-block;width:1.4em;color:'+escHtml(e.col)+';">✓</span>';
-    if (style === 'arrow') return '<span style="display:inline-block;width:1.4em;color:'+escHtml(e.col)+';">›</span>';
+    if (style === 'check') return '<span style="display:inline-block;width:1.4em;color:'+escHtml(elementColor(e, 'col'))+';">✓</span>';
+    if (style === 'arrow') return '<span style="display:inline-block;width:1.4em;color:'+escHtml(elementColor(e, 'col'))+';">›</span>';
     return '';
   }
 
